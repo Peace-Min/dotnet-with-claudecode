@@ -50,6 +50,7 @@ dependencies) into a private fork for an **air-gapped Windows PC** that develops
 | `d0f85fb` | #4 net472 guardrails | CLAUDE.md Target-Framework section; `hooks/Net472GuardrailsLoader.cs` SessionStart hook (enforced for installed users) |
 | `3ab9603` | #5 Hand-rolled MVVM | Rewrite mvvm-constraints / prohibitions / wiring rules; MvvmViolationDetector flags CTK; fix a latent CS8803 |
 | `8990f8b` | #5 follow-up | Fix stale `view-viewmodel-wiring-communitytoolkit` references in agents/TERMINOLOGY |
+| `7f58eff` | Bootstrap | `setup.ps1` (one command after clone) + `hooks/BootstrapCheck.cs`; auto-configure knowledge path to the clone; fix the MCP config-dir mismatch (`~/.wpf-dev-pack-mcp` → fork name) that had broken set-repo-path |
 
 ### Key mechanism note
 Installed plugins do **not** auto-load `.claude/CLAUDE.md` or `.claude/rules` — only
@@ -61,6 +62,10 @@ hook (`Net472GuardrailsLoader.cs`), mirroring the existing `WpfAuthoringRulesLoa
   (`list/get/search/refresh_wpf_topics`). Full startup confirmed via a net9.0 proxy build
   because this machine has only the **.NET 10 preview.5** runtime, which lacks the net10-RTM
   `System.Text.Json` API that `Microsoft.Extensions.AI` needs. On RTM 10.0.300+ the net10 build runs.
+- **Bootstrap:** `setup.ps1` run end-to-end under Windows PowerShell 5.1 — it published
+  WpfDevPackMcp, installed HandMirrorMcp + XamlStyler from NuGet (shims `handmirror.exe`
+  / `xstyler.exe`), and wrote `config.json` (repoPath = clone). `BootstrapCheck.cs`
+  correctly prints the bootstrap command when `bin/` is missing and is silent once built.
 - **Net472GuardrailsLoader / MvvmViolationDetector:** run-verified via `dotnet run`
   (bare `dotnet file.cs` is unsupported on preview.5 but works on RTM). MvvmViolationDetector
   correctly flags `CommunityToolkit.Mvvm` and `System.Windows.*` in a ViewModel.
@@ -92,16 +97,27 @@ English is authoritative. Still to mirror: `README.ko.md` (offline sections), `.
 
 ---
 
-## 5. How to build the local executables
+## 5. Setting up a clone (closed network)
 
-On a machine with internet (or an approved internal feed) and the **RTM** SDK:
+The target PC has the .NET 10 RTM SDK, Claude Code, NuGet access, and VS MSBuild,
+so it builds everything itself — no pre-built binary transfer needed. git cannot
+auto-run a script on clone, so the setup is **one command**:
 
 ```powershell
-cd wpf-net472-airgap-dev-pack
-pwsh ./tools/build-local-bin.ps1
-# -> bin/WpfDevPackMcp (from ../mcp), bin/HandMirrorMcp, bin/XamlStyler
-# options: -Source <feed>  -SelfContained  -XamlStylerVersion <v>  -AllowPreviewSdk
+git clone <internal-remote>/dotnet-with-claudecode.git
+cd dotnet-with-claudecode
+pwsh ./setup.ps1          # or: powershell -ExecutionPolicy Bypass -File ./setup.ps1
+claude --plugin-dir ./wpf-net472-airgap-dev-pack
 ```
+
+`setup.ps1` verifies the RTM SDK, runs `tools/build-local-bin.ps1` (publishes
+WpfDevPackMcp + vendors HandMirrorMcp/XamlStyler into `bin/`), and writes
+`~/.wpf-net472-airgap-dev-pack-mcp/config.json` pointing the knowledge MCP at the
+clone (no `set-repo-path` needed). A SessionStart hook (`BootstrapCheck.cs`)
+reminds the user to run it if `bin/` is missing. Re-run only after pulling new commits.
+
+Underlying build options: `pwsh ./wpf-net472-airgap-dev-pack/tools/build-local-bin.ps1
+-Source <feed> -SelfContained -XamlStylerVersion <v>`.
 
 `bin/` is git-ignored; it is produced at bundle-prep time and transferred into the closed network.
 
