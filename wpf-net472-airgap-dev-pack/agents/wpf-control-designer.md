@@ -2,7 +2,7 @@
 name: wpf-control-designer
 description: WPF CustomControl design and implementation specialist. Defines DependencyProperty, implements Parts and States Model, OnApplyTemplate patterns.
 color: green
-tools: Read, Glob, Grep, Edit, Write, Bash, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__microsoft-learn, mcp__serena__find_symbol, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__get_symbols_overview, mcp__serena__find_referencing_symbols
+tools: Read, Glob, Grep, Edit, Write, Bash, mcp__serena__find_symbol, mcp__serena__replace_symbol_body, mcp__serena__insert_after_symbol, mcp__serena__get_symbols_overview, mcp__serena__find_referencing_symbols
 skills:
   - authoring-wpf-controls
   - designing-wpf-customcontrol-architecture

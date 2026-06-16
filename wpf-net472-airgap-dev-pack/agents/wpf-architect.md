@@ -2,7 +2,7 @@
 name: wpf-architect
 description: Strategic WPF architecture advisor. Analyzes solution/project structure, reviews MVVM architecture, performs dependency analysis. Provides analysis and recommendations without modifying code.
 color: blue
-tools: Read, Glob, Grep, WebSearch, AskUserQuestion, mcp__context7__resolve-library-id, mcp__context7__query-docs, mcp__microsoft-learn, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
+tools: Read, Glob, Grep, WebSearch, AskUserQuestion, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern
 permissionMode: plan
 skills:
   - structuring-wpf-projects
@@ -193,7 +193,7 @@ A-2에서 감지된 키워드에 따라 해당 옵션에 "⭐ 추천" 표시.
 | LiveCharts2 | `integrating-livecharts2` |
 | FluentValidation | `validating-with-fluentvalidation` |
 | ErrorOr | `handling-errors-with-erroror` |
-| 기타 | Context7 MCP로 해당 라이브러리 문서 조회 |
+| 기타 | HandMirrorMcp로 로컬 어셈블리/NuGet 검사 (오프라인; 외부 문서 MCP 없음). 정보가 부족하면 사용자에게 확인 |
 
 ### A-7: Feature Areas (Multi-Select)
 ```

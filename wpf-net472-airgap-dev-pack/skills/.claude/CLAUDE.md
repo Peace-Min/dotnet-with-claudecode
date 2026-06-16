@@ -28,21 +28,28 @@ To add a knowledge topic: create `knowledge/<id>/TOPIC.md`
 (NO frontmatter — first `# H1` is the title; put a one-line `> summary`
 blockquote directly under the H1; the MCP catalog reads both from the body).
 No router edit, no plugin skill, no version bump, no MCP rebuild — the
-catalog auto-discovers it and the server picks it up on next pull.
+catalog auto-discovers it and the server picks it up on the next local rescan
+(`refresh_wpf_knowledge`); offline, this is a disk rescan with no network.
 
 ---
 
-### HandMirror MCP - .NET API Verification
+### HandMirror MCP — .NET API Verification (local, offline)
 
-When querying .NET API/NuGet package information, **also use HandMirrorMcp tools** to reduce hallucinations.
+`HandMirrorMcp` is a LOCAL bundled MCP server. It inspects assemblies and NuGet
+packages already on disk, so it needs no network — making it the **primary**
+defense against hallucinated APIs in this offline fork (there is no context7 /
+Microsoft Learn to fall back on).
 
-**Trigger condition**: When using context7 or Microsoft Learn MCP for .NET/NuGet related queries
+**Trigger condition**: before writing or changing code that calls any .NET /
+NuGet API whose exact namespace, type, or signature you are not fully certain of
+— especially `net472`/`net48` API availability and DevExpress / third-party
+assemblies already referenced by the target solution.
 
-**Co-usage rules:**
+**Verification rules:**
 
 ```
-WHEN using context7 or Microsoft Learn for .NET/NuGet info:
-  ALSO use HandMirrorMcp to verify:
+WHEN unsure about a .NET API or package surface:
+  USE HandMirrorMcp to verify against the LOCAL assemblies/packages:
     - inspect_nuget_package: List namespaces/types in a NuGet package
     - inspect_nuget_package_type: Get exact method signatures
     - search_nuget_packages: Search packages by keyword
@@ -52,7 +59,9 @@ WHEN using context7 or Microsoft Learn for .NET/NuGet info:
 ```
 
 **Usage scenarios:**
+- Confirm an API/type actually exists in the project's target framework (net472/net48)
 - Verify API name casing accuracy in NuGet packages (e.g., SQLite vs Sqlite)
 - Identify correct namespaces for extension methods
+- Inspect DevExpress / third-party assemblies already referenced by the solution
 - Check API breaking changes across package versions
-- Diagnose build errors (CS0246, NU1605, etc.) and recommend required packages
+- Diagnose build errors (CS0246, NU1605, etc.) and recommend already-available packages

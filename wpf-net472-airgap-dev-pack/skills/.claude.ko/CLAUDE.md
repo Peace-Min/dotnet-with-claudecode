@@ -30,23 +30,26 @@ MCP 서버 자체의 instructions가 에이전트에게 WPF 질문에 답하기 
 한 줄짜리 `> 요약` 블록인용을 작성합니다(MCP 카탈로그가 본문에서
 제목·요약을 읽음). 라우터 수정 불필요, 플러그인 스킬 등록 불필요,
 버전 범프 불필요, MCP 재빌드 불필요 — 카탈로그가 자동 발견하고
-서버는 다음 pull 시 반영합니다.
+서버는 다음 로컬 재스캔(`refresh_wpf_knowledge`) 시 반영합니다(오프라인이라
+디스크 재스캔이며 네트워크 없음).
 
 ---
 
-## HandMirror MCP - .NET API 검증
+## HandMirror MCP — .NET API 검증 (로컬/오프라인)
 
-.NET API/NuGet 패키지 정보를 조회할 때, **HandMirrorMcp 도구도 함께
-사용**하여 환각을 줄입니다.
+`HandMirrorMcp`는 동봉된 **로컬** MCP 서버입니다. 디스크에 이미 있는 어셈블리·
+NuGet 패키지를 검사하므로 네트워크가 필요 없고, 이 오프라인 포크에서 환각 API를
+막는 **1차 방어선**입니다(폴백할 context7 / Microsoft Learn이 없음).
 
-**트리거 조건**: .NET/NuGet 관련 조회로 context7 또는 Microsoft Learn
-MCP를 사용할 때
+**트리거 조건**: 정확한 namespace·type·시그니처에 확신이 없는 .NET/NuGet API를
+작성·수정하기 전 — 특히 `net472`/`net48` API 가용성, 그리고 대상 솔루션이 이미
+참조하는 DevExpress / 서드파티 어셈블리.
 
-**공동 사용 규칙:**
+**검증 규칙:**
 
 ```
-WHEN context7 또는 Microsoft Learn으로 .NET/NuGet 정보 조회:
-  ALSO HandMirrorMcp 사용해 검증:
+WHEN .NET API 또는 패키지 표면에 확신이 없을 때:
+  USE HandMirrorMcp로 로컬 어셈블리/패키지를 검증:
     - inspect_nuget_package: NuGet 패키지 내 namespace/type 목록
     - inspect_nuget_package_type: 정확한 메서드 시그니처 조회
     - search_nuget_packages: 키워드로 패키지 검색

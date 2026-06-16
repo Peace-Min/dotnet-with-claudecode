@@ -9,26 +9,40 @@ WPF 지식은 WpfDevPackMcp MCP 서버가 온디맨드로 제공합니다(답변
 
 ---
 
-## 필수 플러그인 의존성
+## MCP 서버 (전부 로컬 / 오프라인)
 
-모든 agent는 다음 Claude Code 플러그인이 설치되어 있어야 합니다:
+이 포크는 자체 MCP 서버를 동봉하며 **온라인 MCP에 의존하지 않습니다**.
+플러그인의 `.mcp.json`이 `bin/`의 로컬 실행파일로 기동하며
+(`tools/build-local-bin.ps1`로 1회 빌드), 프로세스 시작 시 `dnx`/NuGet 해석이
+없으므로 NuGet/`uv` 캐시를 정리해도 계속 기동됩니다.
 
-| Plugin | MCP Server | 용도 |
-|--------|-----------|------|
-| **context7** | context7 | 라이브러리/프레임워크 문서 |
-| **microsoft-docs** | microsoft-learn | Microsoft 공식 문서 |
-| **csharp-lsp** | csharp | C# LSP 코드 지능 |
-
-## 필수 MCP (Claude Code 플러그인으로 설치하지 않음)
-
-다음 MCP 서버는 agent들이 필요로 하지만 **Claude Code 플러그인 경로로
-등록해서는 안 됩니다** — Claude Code의 내장 도구 설명이 모델로 하여금
-그 도구들을 사용하지 않도록 강하게 편향시킵니다. `uv`를 통해 MCP 서버
-형태로 직접 설치하세요.
-
-| MCP Server | 용도 | 설치 방법 |
+| MCP Server | 동봉 | 용도 |
 |---|---|---|
-| **serena** | Semantic 코드 분석, 심볼 네비게이션 | [Quick Start](https://github.com/oraios/serena#quick-start)에 따라 `uv`로 직접 설치. 이유는 [Serena Claude Code 문서의 Attention note](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code) 참조. |
+| **WpfDevPackMcp** | ✅ `bin/WpfDevPackMcp` | 로컬 WPF 지식 토픽 제공 (오프라인; 로컬 클론을 읽고 pull하지 않음) |
+| **HandMirrorMcp** | ✅ `bin/HandMirrorMcp` | 코드 작성 전 정확한 namespace / API 시그니처 검증 |
+
+### 오프라인 모드 (강제 규칙)
+
+로컬 소스, 로컬 어셈블리, 로컬 NuGet 피드, 로컬 문서, 사전 설치된 도구만
+사용합니다. `git pull`, 마켓플레이스 업데이트, `uvx git+https://…`, 공개 피드
+대상 온라인 NuGet 검색/복원 등 네트워크 fetch를 암시적으로 수행하지 마세요.
+정보가 부족하면 네트워크에 접근하지 말고 사용자에게 물어보세요.
+
+### 제거된 온라인 의존성
+
+**context7**, **microsoft-docs / Microsoft Learn**은 사용하지 않으며 필수가
+아닙니다. 정확성 의존성으로 취급하거나 설치를 권하거나, 부재를 이유로 결과가
+저하된다고 주장하지 마세요.
+
+### 선택적 로컬 도구 (필수 아님)
+
+일부 agent를 향상시키지만 없어도 플러그인은 완전히 동작합니다. 승인된 오프라인
+패키지로만 설치하고 런타임에 네트워크로 가져오지 마세요.
+
+| 도구 | 용도 | 부재 시 |
+|---|---|---|
+| **serena** | Semantic 코드 분석, 심볼 네비게이션 | Read/Grep/Glob으로 폴백. 원하면 전송한 사본으로 `uv` 설치. |
+| **csharp-lsp** | C# LSP 코드 지능 | `wpf-code-reviewer`가 텍스트 분석으로 폴백. |
 
 ---
 

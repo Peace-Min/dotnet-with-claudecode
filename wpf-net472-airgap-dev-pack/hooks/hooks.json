@@ -1,5 +1,5 @@
 {
-  "description": "WPF Dev Pack hooks - .NET SDK version check, MCP dependency check, XAML validation, MVVM violation detection, build error diagnosis, code formatting, HandMirror API verification reminder, per-project language preference loader, and WPF ControlTemplate/Style/animation authoring-rules injection (SessionStart) (C# file-based apps, .NET SDK 10.0.300+ required). Note: feedback document anonymity audit and Microsoft skill creator reminder are wired through skill frontmatter, not here.",
+  "description": "wpf-net472-airgap-dev-pack hooks - .NET SDK version check, XAML validation, MVVM violation detection, build error diagnosis, code formatting, per-project language preference loader, and WPF ControlTemplate/Style/animation authoring-rules injection (SessionStart) (C# file-based apps, .NET SDK 10.0.300+ required). Offline fork: no online-MCP dependency checks and no context7/Microsoft-Learn reminders. Note: feedback document anonymity audit and Microsoft skill creator reminder are wired through skill frontmatter, not here.",
   "hooks": {
     "SessionStart": [
       {
@@ -25,34 +25,12 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "mcp__plugin_context7|mcp__claude_ai_Microsoft_Learn",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "dotnet \"${CLAUDE_PLUGIN_ROOT}/hooks/HandMirrorReminder.cs\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
         "matcher": "mcp__.*WpfDevPackMcp.*",
         "hooks": [
           {
             "type": "command",
             "command": "dotnet \"${CLAUDE_PLUGIN_ROOT}/hooks/RepoPathGuard.cs\"",
             "timeout": 30
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "dotnet \"${CLAUDE_PLUGIN_ROOT}/hooks/McpDependencyChecker.cs\"",
-            "timeout": 5
           }
         ]
       }

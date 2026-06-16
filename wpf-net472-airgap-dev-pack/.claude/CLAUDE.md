@@ -6,23 +6,41 @@ keyword-detection hook.
 
 ---
 
-## Required Plugin Dependencies
+## MCP Servers (all local / offline)
 
-All agents require these Claude Code plugins to be installed:
+This fork ships its own MCP servers and depends on **NO online MCP**. The
+plugin's `.mcp.json` launches them from local executables under `bin/` (built
+once by `tools/build-local-bin.ps1`); there is no `dnx`/NuGet resolution at
+process start, so they keep starting after a NuGet/`uv` cache cleanup.
 
-| Plugin | MCP Server | Purpose |
-|--------|-----------|---------|
-| **context7** | context7 | Library/framework documentation |
-| **microsoft-docs** | microsoft-learn | Official Microsoft documentation |
-| **csharp-lsp** | csharp | C# LSP code intelligence |
-
-## Required MCPs (NOT installed as Claude Code plugins)
-
-The following MCP server is required by agents but **must NOT be registered through the Claude Code plugin path** — Claude Code's built-in tool descriptions strongly bias the model away from using its tools when registered that way. Install directly as an MCP server via `uv`.
-
-| MCP Server | Purpose | Installation |
+| MCP Server | Bundled | Purpose |
 |---|---|---|
-| **serena** | Semantic code analysis, symbol navigation | Install directly via `uv` per the [Quick Start](https://github.com/oraios/serena#quick-start). See the [Attention note in the Serena Claude Code docs](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code) for the rationale. |
+| **WpfDevPackMcp** | ✅ `bin/WpfDevPackMcp` | Serves local WPF knowledge topics (offline; reads a local clone, never pulls) |
+| **HandMirrorMcp** | ✅ `bin/HandMirrorMcp` | Verifies exact namespaces / API signatures before writing code |
+
+### Offline mode (hard rule)
+
+Use only local source, local assemblies, local NuGet feeds, local documentation,
+and preinstalled tools. Never, as an implicit action, run `git pull`, marketplace
+updates, `uvx git+https://…`, online NuGet search/restore against public feeds,
+or any other network fetch. If information is missing, ask the user rather than
+reaching out to the network.
+
+### Removed online dependencies
+
+**context7** and **microsoft-docs / Microsoft Learn** are NOT used and NOT
+required. Do not treat them as a correctness dependency, recommend installing
+them, or claim degraded results because they are absent.
+
+### Optional local tools (not required)
+
+These enhance some agents but the plugin works fully without them. Install only
+from approved offline packages — never fetch them at runtime.
+
+| Tool | Purpose | If absent |
+|---|---|---|
+| **serena** | Semantic code analysis, symbol navigation | Agents fall back to Read/Grep/Glob. Install via `uv` from a transferred copy if desired. |
+| **csharp-lsp** | C# LSP code intelligence | `wpf-code-reviewer` falls back to text analysis. |
 
 ---
 

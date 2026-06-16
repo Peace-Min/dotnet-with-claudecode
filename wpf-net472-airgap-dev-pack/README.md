@@ -51,10 +51,10 @@
 <tr>
 <td width="50%">
 
-### 📚 Smart Documentation
-- **Microsoft Learn** plugin (install from marketplace)
-- **Context7** for up-to-date docs (external)
-- **Semantic code analysis** with Serena (external)
+### 📚 Local Knowledge (offline)
+- **WpfDevPackMcp** serves WPF topics from a local clone (no network)
+- **HandMirrorMcp** verifies APIs against local assemblies/NuGet
+- **Semantic code analysis** with Serena (optional, local)
 
 </td>
 <td width="50%">
@@ -88,50 +88,57 @@
 claude --plugin-dir ./wpf-net472-airgap-dev-pack
 ```
 
-### Updating
+### Updating (closed network)
+
+Auto-update is **off and must stay off**. Update only by transferring a freshly
+built bundle from outside the network — never let the plugin or marketplace pull
+on its own.
 
 ```bash
-# Manual update
-claude plugin update wpf-net472-airgap-dev-pack@dotnet-net472-airgap-plugins
-
-# Or enable auto-updates for this marketplace
-/plugin → Marketplaces → dotnet-net472-airgap-plugins → Enable auto-update
+# Apply an approved new bundle, then (optionally) reinstall locally:
+claude --plugin-dir ./wpf-net472-airgap-dev-pack
 ```
 
-> **Note:** Third-party marketplaces have auto-update disabled by default.
+> **Note:** Third-party marketplaces have auto-update disabled by default. Keep it disabled.
 
 ### Requirements
 
 | Requirement | Version | Notes |
 |-------------|---------|-------|
-| .NET SDK | **10.0.300+** | Required for file-based app hooks |
+| .NET SDK | **10.0.300+ (RTM)** | Runs the C# hooks and builds the local MCP servers. A *preview* .NET 10 SDK produces MCP binaries that crash at startup — use the RTM SDK. |
 | Claude Code | Latest | - |
-| uv | Latest | For Serena MCP |
+| uv | Latest | **Optional** — only if you choose to run Serena locally |
 
-> **Target Framework vs SDK**: .NET SDK 10.0.300+ is required to **run wpf-net472-airgap-dev-pack** (hooks use file-based apps).
-> Generated WPF projects can **target .NET 8+** — install the corresponding SDK alongside .NET 10 if needed.
+> **Target Framework vs support SDK**: .NET SDK 10.0.300+ only **runs the plugin** (hooks + local MCP build).
+> The WPF code this fork generates and maintains targets **.NET Framework 4.7.2–4.8 (`net472`/`net48`)**, which is independent of the support SDK.
 
-### Required Plugin Dependencies
+### MCP servers (local / offline)
 
-wpf-net472-airgap-dev-pack agents require the following Claude Code plugins to be installed separately:
+This fork **bundles its MCP servers and requires no online MCP.** Build them once
+during bundle prep on a machine that can reach an approved feed; afterwards they
+run from `bin/` with no `dnx`/NuGet resolution at startup:
 
-| Plugin | MCP Server | Purpose |
-|--------|-----------|---------|
-| **[context7](https://github.com/upstash/context7)** | context7 | Up-to-date library/framework documentation |
-| **[microsoft-docs](https://github.com/MicrosoftDocs/mcp)** | microsoft-learn | Official Microsoft documentation and code samples |
-| **[csharp-lsp](https://github.com/razzmatazz/csharp-language-server)** | csharp | C# Language Server Protocol (definition, references, diagnostics) |
+```powershell
+pwsh ./tools/build-local-bin.ps1
+# builds bin/WpfDevPackMcp (from ../mcp) and vendors HandMirrorMcp + XamlStyler.Console
+```
 
-### Required MCPs
-
-The following MCP server is required by wpf-net472-airgap-dev-pack agents but **must NOT be installed as a Claude Code plugin** — install it directly as an MCP server via `uv` instead.
-
-| MCP Server | Purpose | Installation |
+| MCP Server | Bundled | Purpose |
 |---|---|---|
-| **[serena](https://github.com/oraios/serena)** | Semantic code analysis, symbol navigation | Install directly via `uv` per the [Quick Start](https://github.com/oraios/serena#quick-start). Do **not** use a Claude Code plugin path — see the [Attention note in the Serena Claude Code docs](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code) for the rationale (Claude Code's built-in tool descriptions strongly bias the model away from invoking Serena's tools when registered through the plugin path). |
+| **WpfDevPackMcp** | ✅ `bin/WpfDevPackMcp` | Local WPF knowledge topics (offline; reads a local clone, never pulls) |
+| **HandMirrorMcp** | ✅ `bin/HandMirrorMcp` | Verifies namespaces/signatures against local assemblies & NuGet |
 
-> **Note:** wpf-net472-airgap-dev-pack checks Claude Code plugin availability at runtime and warns if missing. The Serena MCP must be set up separately as described above.
+**Removed online dependencies:** `context7` and `microsoft-docs` / Microsoft
+Learn are **not used and not required**. The plugin does not check for them and
+does not degrade without them.
 
-Install via Claude Code marketplace or `/install-plugin` command.
+**Optional local tools** (the plugin works fully without them — install only from
+approved offline packages, never fetched at runtime):
+
+| Tool | Purpose | If absent |
+|---|---|---|
+| [**serena**](https://github.com/oraios/serena) | Semantic code analysis, symbol navigation | Agents fall back to Read/Grep/Glob. If used, install directly via `uv` (not the Claude Code plugin path — see the [Attention note](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code)). |
+| [**csharp-lsp**](https://github.com/razzmatazz/csharp-language-server) | C# LSP (definition, references, diagnostics) | `wpf-code-reviewer` falls back to text analysis. |
 
 ---
 
@@ -274,14 +281,12 @@ For complex tasks, a specialized agent is recommended (e.g. `wpf-performance-opt
 
 | Plugin | MCP Server | Purpose |
 |--------|-----------|---------|
-| **HandMirrorMcp** | HandMirrorMcp | .NET assembly/NuGet inspection (bundled) |
-| **WpfDevPackMcp** | WpfDevPackMcp | WPF knowledge topics, served on demand from a local repo clone (bundled) |
-| **context7** | context7 | Library/framework documentation |
-| _(direct MCP via `uv`)_ | **serena** | Semantic code analysis |
-| **microsoft-docs** | microsoft-learn | Official Microsoft documentation |
-| **csharp-lsp** | csharp | C# LSP code intelligence |
+| **HandMirrorMcp** | HandMirrorMcp | .NET assembly/NuGet inspection (bundled, local) |
+| **WpfDevPackMcp** | WpfDevPackMcp | WPF knowledge topics from a local repo clone (bundled, local) |
+| _(optional, `uv`)_ | **serena** | Semantic code analysis (optional, local) |
+| _(optional)_ | **csharp-lsp** | C# LSP code intelligence (optional, local) |
 
-> See [Required Plugin Dependencies](#required-plugin-dependencies) and [Required MCPs](#required-mcps) for installation. Serena is **not** a Claude Code plugin — install it directly as an MCP server via `uv`.
+> Both bundled MCP servers run from `bin/` with no network. `context7` and `microsoft-docs` / Microsoft Learn are **not used**. Serena / csharp-lsp are optional — see [MCP servers (local / offline)](#mcp-servers-local--offline) above.
 
 ### 📚 Skills & Knowledge
 
