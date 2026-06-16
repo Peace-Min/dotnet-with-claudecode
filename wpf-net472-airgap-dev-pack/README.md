@@ -11,7 +11,7 @@
 [![.NET](https://img.shields.io/badge/.NET_SDK-10.0.300+-purple.svg)](https://dotnet.microsoft.com/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-orange.svg)](https://claude.ai)
 
-**19 Skills** · **10 Specialized Agents** · **2 MCP Servers**
+**14 Skills** · **10 Specialized Agents** · **2 MCP Servers**
 
 [Installation](#-installation) · [Quick Start](#-quick-start) · [Features](#-features) · [Documentation](#-documentation)
 
@@ -43,7 +43,7 @@
 <td width="50%">
 
 ### 🛠️ Complete Toolkit
-- **19 command Skills** + on-demand WPF knowledge via MCP
+- **14 command Skills** + on-demand WPF knowledge via MCP
 - **Best practices** built-in
 
 </td>
@@ -314,7 +314,7 @@ For complex tasks, a specialized agent is recommended (e.g. `wpf-performance-opt
 > as plain Markdown. See [`mcp/README.md`](../mcp/README.md) and
 > [`/wpf-net472-airgap-dev-pack:set-repo-path`](#-configuration).
 
-The plugin bundles **19 command skills** (slash-invocable):
+The plugin bundles **14 command skills** (slash-invocable):
 
 <details>
 <summary><b>🏗️ Scaffolding (7 skills)</b></summary>
@@ -328,19 +328,6 @@ The plugin bundles **19 command skills** (slash-invocable):
 | `make-wpf-behavior` | Behavior<T> generation |
 | `make-wpf-viewmodel` | ViewModel + View + DI + DataTemplate mapping generation |
 | `make-wpf-service` | Service interface + implementation + DI registration |
-
-</details>
-
-<details>
-<summary><b>💬 LLM Chat (5 skills)</b></summary>
-
-| Skill | Description |
-|-------|-------------|
-| `make-wpf-chatclient` | One-button streaming LLM chat client (full surface) |
-| `make-wpf-chatclient-factory` | Provider-agnostic IChatClient factory (shared SocketsHttpHandler) + MockChatClient |
-| `make-wpf-chat-orchestrator` | Streaming chat orchestrator (UI-agnostic events) + MCP tool acquisition |
-| `make-wpf-chat-bubble-template` | Role-differentiated chat bubble templates |
-| `make-wpf-markdown-presenter` | Markdig → selectable FlowDocument markdown presenter |
 
 </details>
 
@@ -386,7 +373,7 @@ wpf-net472-airgap-dev-pack/
 │   ├── wpf-performance-optimizer.md
 │   ├── code-formatter.md
 │   └── serena-initializer.md
-├── 📁 skills/                 # 19 command skills
+├── 📁 skills/                 # 14 command skills
 ├── 📁 hooks/                  # Event hooks
 ├── 📄 .mcp.json               # MCP config (HandMirrorMcp + WpfDevPackMcp)
 ├── 📄 README.md

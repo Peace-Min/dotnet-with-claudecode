@@ -11,7 +11,7 @@
 [![.NET](https://img.shields.io/badge/.NET_SDK-10.0.300+-purple.svg)](https://dotnet.microsoft.com/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-orange.svg)](https://claude.ai)
 
-**19개 스킬** · **10개 전문 에이전트** · **2개 MCP 서버**
+**14개 스킬** · **10개 전문 에이전트** · **2개 MCP 서버**
 
 [설치](#-설치) · [빠른 시작](#-빠른-시작) · [기능](#-기능) · [문서](#-문서)
 
@@ -43,7 +43,7 @@
 <td width="50%">
 
 ### 🛠️ 완벽한 도구 키트
-- **19개 커맨드 스킬** + MCP로 온디맨드 제공되는 WPF 지식
+- **14개 커맨드 스킬** + MCP로 온디맨드 제공되는 WPF 지식
 - **모범 사례** 내장
 
 </td>
@@ -246,7 +246,7 @@ wpf-net472-airgap-dev-pack은 키워드 감지 훅을 **사용하지 않습니�
 
 ### 커맨드 스킬 vs 지식
 
-- **커맨드 스킬** (`/wpf-net472-airgap-dev-pack:<name>`) — 슬래시로 호출하는 생성기/플러그인 운영 도구 (19개 번들; 아래 **스킬 & 지식** 참조).
+- **커맨드 스킬** (`/wpf-net472-airgap-dev-pack:<name>`) — 슬래시로 호출하는 생성기/플러그인 운영 도구 (14개 번들; 아래 **스킬 & 지식** 참조).
 - **지식 토픽** — WpfDevPackMcp가 제공하는 참조 콘텐츠로, 세션 스킬 목록에 올라가지 않습니다 (세션 컨텍스트 비용 없음).
 
 ---
@@ -295,7 +295,7 @@ wpf-net472-airgap-dev-pack은 키워드 감지 훅을 **사용하지 않습니�
 > [`mcp/README.md`](../mcp/README.md)와 [`/wpf-net472-airgap-dev-pack:set-repo-path`](#-설정)를
 > 참고하세요.
 
-플러그인은 **19개 커맨드 스킬**(슬래시 호출)을 번들합니다:
+플러그인은 **14개 커맨드 스킬**(슬래시 호출)을 번들합니다:
 
 <details>
 <summary><b>🏗️ 스캐폴딩 (7개 스킬)</b></summary>
@@ -309,19 +309,6 @@ wpf-net472-airgap-dev-pack은 키워드 감지 훅을 **사용하지 않습니�
 | `make-wpf-behavior` | Behavior<T> 생성 |
 | `make-wpf-viewmodel` | ViewModel + View + DI + DataTemplate 매핑 생성 |
 | `make-wpf-service` | 서비스 인터페이스 + 구현 + DI 등록 |
-
-</details>
-
-<details>
-<summary><b>💬 LLM 채팅 (5개 스킬)</b></summary>
-
-| 스킬 | 설명 |
-|------|------|
-| `make-wpf-chatclient` | 원버튼 스트리밍 LLM 채팅 클라이언트 (전체 구성) |
-| `make-wpf-chatclient-factory` | 프로바이더 무관 IChatClient 팩토리 (공유 SocketsHttpHandler) + MockChatClient |
-| `make-wpf-chat-orchestrator` | 스트리밍 채팅 오케스트레이터 (UI 비의존 이벤트) + MCP 도구 획득 |
-| `make-wpf-chat-bubble-template` | 역할별 채팅 버블 템플릿 |
-| `make-wpf-markdown-presenter` | Markdig → 선택 가능한 FlowDocument 마크다운 프리젠터 |
 
 </details>
 
@@ -367,7 +354,7 @@ wpf-net472-airgap-dev-pack/
 │   ├── wpf-performance-optimizer.md
 │   ├── code-formatter.md
 │   └── serena-initializer.md
-├── 📁 skills/                 # 19개 커맨드 스킬
+├── 📁 skills/                 # 14개 커맨드 스킬
 ├── 📁 hooks/                  # 이벤트 훅
 ├── 📄 .mcp.json               # MCP 설정 (HandMirrorMcp + WpfDevPackMcp)
 ├── 📄 README.md
