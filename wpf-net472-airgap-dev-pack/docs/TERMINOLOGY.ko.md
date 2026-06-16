@@ -2,177 +2,115 @@
 
 # wpf-net472-airgap-dev-pack — 용어 정의
 
-본 문서는 wpf-net472-airgap-dev-pack이 채택하는 MVVM Composition 방식과 관련 용어를
-Microsoft 공식 정의 기준으로 정의합니다. 본 문서가 plugin 전반에서 사용하는
-모든 용어의 단일 출처(single source of truth)입니다.
+본 문서는 wpf-net472-airgap-dev-pack이 채택하는 MVVM 방침과 관련 용어를
+정의합니다. 본 문서가 plugin 전반에서 사용하는 모든 용어의 단일
+출처(single source of truth)입니다.
+
+본 fork는 **.NET Framework 4.7.2–4.8**(net472/net48)을 위한 오프라인
+air-gapped fork입니다. upstream과 달리, "Composition Direction"
+모델(View First vs ViewModel First)이나 단일 강제 wiring 경로를 강요하지
+**않습니다**. 하나의 MVVM 스타일을 사용하며, View와 ViewModel을 연결하는
+방식에 대해서는 실용적(pragmatic)으로 접근합니다.
 
 ---
 
-## 1. 4축 분리 모델 (Four-Axis Separation Model)
+## 1. 직접 구현(hand-rolled) MVVM
 
-MVVM에서 View와 ViewModel의 관계는 두 개의 **직교하는 독립적 축**으로
-나뉩니다.
+본 fork는 모든 생성 코드에 대해 단 하나의 MVVM 스타일을 사용합니다 —
+외부 MVVM 패키지 없이 net472/net48(C# 7.3 안전)에서 컴파일되는
+**의존성 없는 직접 구현(dependency-free hand-rolled) MVVM**입니다.
 
-### 축 1: Composition Direction (View First vs ViewModel First)
+- ViewModel은 직접 구현한 **`BindableBase : INotifyPropertyChanged`**
+  (`SetProperty` / `RaisePropertyChanged`)를 상속합니다.
+- Command는 직접 구현한 **`RelayCommand` / `RelayCommand<T> : ICommand`**
+  를 사용합니다.
+- 프로젝트에 이러한 base class가 없으면 한 번만 생성하여(예: `Mvvm/` 아래)
+  재사용합니다. 프로젝트에 이미 자체 base class가 있으면 그것을 보존하고
+  사용합니다.
+- **CommunityToolkit.Mvvm 미사용** — `ObservableObject`,
+  `[ObservableProperty]`, `[RelayCommand]`, source generator를 사용하지
+  않습니다. **프레임워크 자동 감지 없음**(DevExpress / CTK / Prism 탐지
+  없음) — 항상 직접 구현 형태로 생성합니다.
 
-Microsoft 공식 분류 기준은 단 하나의 질문입니다 —
-**composition/navigation의 lookup key가 무엇인가?**
+전체 base class 정의 및 사용법:
+[`mvvm-constraints.md`](../.claude/rules/mvvm-constraints.md).
 
-| Lookup key | 분류 |
+---
+
+## 2. View ↔ ViewModel Wiring (실용적 — 프로젝트에 맞춤)
+
+Wiring은 단일 강제 경로가 **아닙니다**. 생성 코드가 기존 net472/net48 앱에
+자연스럽게 맞도록, 다음을 모두 허용합니다. **프로젝트가 이미 사용하는
+방식에 맞추되**, 일관성을 위해 프로젝트당 하나의 스타일을 권장합니다:
+
+| Wiring 옵션 | 적합한 경우 |
 |---|---|
-| View 타입 이름 (string) | **View First Composition** |
-| ViewModel 타입 | **ViewModel First Composition** |
+| View 생성자에서 **code-behind** `DataContext = new XxxViewModel()` | 가장 단순하고 보편적인 패턴. 독립 Window, dialog, 소규모 앱 |
+| **DataTemplate 매핑**(ViewModel-first): `DataType`만 지정하고 **`x:Key` 없는** implicit `DataTemplate`. `ContentControl.Content`에 바인딩된 ViewModel이 자신의 View로 렌더링됨 | 한 host가 여러 ViewModel을 전환하는 content/region 전환 |
+| **DI로 resolve된** ViewModel을 `DataContext`에 할당 | 이미 container를 사용하는 앱 |
 
-- **View First Composition** — 식별자가 View 이름. 예:
-  - Prism `RequestNavigate("ContentRegion", "HomeView")`
-  - Prism `ViewModelLocator.AutoWireViewModel="True"` (View가 anchor)
-  - View code-behind `DataContext = new HomeViewModel();`
+본 fork에서는 code-behind `DataContext` 할당이 명시적으로 **허용**됩니다.
+프로젝트가 이미 동작 중인 기존 wiring을, 요청 없이 다른 스타일로 다시
+작성하지 마십시오.
 
-- **ViewModel First Composition** — 식별자가 ViewModel 타입. 예:
-  - WPF implicit DataTemplate
-    `<DataTemplate DataType="{x:Type vm:HomeViewModel}">`
-  - ViewModel 타입을 target으로 하는 navigation service
-
-참조:
-- https://learn.microsoft.com/dotnet/architecture/maui/navigation
-- https://learn.microsoft.com/dotnet/architecture/maui/mvvm#connecting-view-models-to-views
-
-### 축 2: ViewModel State Management (Stateful vs Stateless)
-
-- **Stateful ViewModel** — ViewModel 인스턴스가 자신의 상태를 직접 보유
-  (한국 WPF 생태계의 사실상 표준).
-- **Stateless ViewModel** — 상태는 외부 Manager/Service에 위임, ViewModel은
-  transient (Stylet, Caliburn.Micro 권장 스타일).
-
-### 두 축의 직교성
-
-| Composition Direction | State Management | 대표 예시 |
-|---|---|---|
-| View First | Stateful | Prism `RegisterForNavigation` + `RegionManager` (wpf-net472-airgap-dev-pack Prism 경로); 전형적 Prism `ViewModelLocator` 패턴 |
-| View First | Stateless | (드묾) View가 매번 외부 State에서 데이터 fetch |
-| **ViewModel First** | **Stateful** | **wpf-net472-airgap-dev-pack CommunityToolkit.Mvvm 경로** (`Mappings.xaml` + implicit DataTemplate) |
-| ViewModel First | Stateless | Stylet의 transient VM 권장 스타일 |
-
-v1.6.4 이전 문서는 "ViewModel First ⇒ Stateless"라는 잘못된 함의를 전제로
-"View First MVVM"이라는 단일 라벨을 강제했으나, 두 축은 **독립**이며 실제
-wpf-net472-airgap-dev-pack은 선택된 프레임워크에 따라 두 가지 조합을 모두 강제합니다
-(§2 참조).
+전체 예시:
+[`view-viewmodel-wiring-handrolled.md`](../.claude/rules/view-viewmodel-wiring-handrolled.md).
 
 ---
 
-## 2. 공식 채택 조합
+## 3. ViewModel 순수성
 
-wpf-net472-airgap-dev-pack은 사용자가 선택한 MVVM 프레임워크에 따라 **서로 다른**
-composition style을 강제합니다. 두 경로 모두 **Stateful ViewModel**을
-공통 채택합니다.
+- ViewModel은 `System.Windows.*` UI 타입(`Visibility`, `Brush`,
+  `ImageSource`, `Thickness`, `Window`, `MessageBox`, …)을 참조하지
+  않습니다.
+- **허용 예외:** `System.Windows.Input.ICommand`(`RelayCommand`용).
+- 바인딩 속성에는 BCL / 도메인 타입을 사용합니다: `string`, `int`, `bool`,
+  `DateTime`, `ObservableCollection<T>`, 다른 ViewModel 등. UI 타입은 View
+  계층(converter / trigger)에서 변환합니다.
+- 컬렉션에는 `ObservableCollection<T>`를 사용하고, `CollectionView`는
+  service 뒤에 두어 ViewModel이 WPF UI 타입으로부터 자유롭게 유지합니다.
 
-### 2.1 CommunityToolkit.Mvvm 경로 (기본)
-
-> **ViewModel First Composition + Stateful ViewModel**
-
-구체 메커니즘: `Mappings.xaml` 기반 implicit DataTemplate 매핑.
-
-```xml
-<DataTemplate DataType="{x:Type vm:HomeViewModel}">
-    <views:HomeView />
-</DataTemplate>
-```
-
-```csharp
-CurrentViewModel = new HomeViewModel();  // ViewModel 인스턴스가 lookup key
-```
-
-상세: [`view-viewmodel-wiring-communitytoolkit.md`](../.claude/rules/view-viewmodel-wiring-communitytoolkit.md)
-
-### 2.2 Prism 9 경로 (대안)
-
-> **View First Composition + Stateful ViewModel**
-
-구체 메커니즘:
-`IContainerRegistry.RegisterForNavigation<View, ViewModel>()` 등록 +
-`IRegionManager.RequestNavigate("Region", "ViewName")` 네비게이션
-(**view name string** 기반).
-
-```csharp
-containerRegistry.RegisterForNavigation<HomeView, HomeViewModel>();
-// ...
-_regionManager.RequestNavigate("ContentRegion", "HomeView");  // View name이 lookup key
-```
-
-상세: [`view-viewmodel-wiring-prism.md`](../.claude/rules/view-viewmodel-wiring-prism.md)
-
-### 2.3 두 경로의 공통점
-
-- **Stateful ViewModel**을 표준 상태 관리 방식으로 채택.
-- 프레임워크별로 **단 하나의 매칭 메커니즘**만 허용. 동일 프로젝트 내에
-  복수의 View-VM 매칭 경로를 공존시키지 않음.
-- ViewModel 클래스는 `System.Windows.*` UI 타입을 참조하지 않음
-  (`ICommand` 제외).
+상세: [`mvvm-constraints.md`](../.claude/rules/mvvm-constraints.md).
 
 ---
 
-## 3. 명시적으로 금지하는 패턴
+## 4. 금지 사항
 
-전체 규칙은 [`prohibitions.md`](../.claude/rules/prohibitions.md) 참조.
+몇 안 되는 핵심 "금지" 규칙(전체 목록은
+[`prohibitions.md`](../.claude/rules/prohibitions.md) 참조):
 
-요약:
-
-| 금지 패턴 | 분류 | 금지 이유 |
-|---|---|---|
-| Prism `ViewModelLocator.AutoWireViewModel="True"` | View First (Prism의 대체 메커니즘) | Prism 경로의 단일 매칭 메커니즘은 `RegisterForNavigation`. `ViewModelLocator`는 그와 경합함 |
-| View code-behind `DataContext = new XxxViewModel()` | View First (imperative) | CommunityToolkit 경로의 단일 매칭 경로를 깸 |
-| `<UserControl.DataContext><vm:XxxVM /></UserControl.DataContext>` | View First (declarative) | 위와 동일 |
-| Stateless ViewModel + Transient IoC 등록 | Stateless VM composition | 별도의 framework 체계(Stylet/Caliburn)에 적합 — plugin 범위 밖 |
-| `Mappings.xaml`/`RegisterForNavigation` 외 매칭 메커니즘 도입 | (any) | 프로젝트당 단일 매칭 경로 유지 |
-
----
-
-## 4. 용어 변경 이력
-
-v1.6.4 이전 문서는 wpf-net472-airgap-dev-pack의 채택 방식을 일괄적으로
-**"View First MVVM"** 으로 라벨링했으나, 이는 Microsoft 공식 정의와
-충돌하는 **부정확한 표현**이었습니다 — 특히 CommunityToolkit.Mvvm 경로
-(`Mappings.xaml` DataTemplate)는 lookup key가 ViewModel 타입이므로
-정확히는 **ViewModel First Composition**입니다.
-
-라벨이 다음과 같이 정정되었습니다:
-
-| 시기 | 라벨 |
+| 금지 사항 | 규칙 |
 |---|---|
-| v1.6.4 이전 | "View First MVVM" (단일 라벨) — 부정확 |
-| v1.6.4+ (CommunityToolkit 경로) | "ViewModel First Composition + Stateful ViewModel" |
-| v1.6.4+ (Prism 경로) | "View First Composition + Stateful ViewModel" |
-
-> **Plugin이 강제하는 실제 코드 패턴은 변경되지 않았습니다.**
-> 라벨만 표준 용어로 정정되었으므로 사용자 코드 수정은 불필요합니다.
+| **CommunityToolkit.Mvvm 사용 금지**(base class, attribute, namespace, source generator 등 일체) | P-001 |
+| **ViewModel에 `System.Windows.*` UI 타입 사용 금지**, 단 `System.Windows.Input.ICommand`는 예외 | P-002 |
+| **프레임워크 자동 도입·자동 감지 금지**(CTK / Prism / DevExpress / Generic Host / DI를 미사용 프로젝트에 추가, 프레임워크 탐지 로직) | P-003 |
+| **프레임워크 / 프로젝트 현대화 금지**(target framework 상향, .NET (Core)로 retarget, project 형식 변환, 패키지 관리 방식 마이그레이션, `LangVersion` 상향) — 명시적 요청 없는 한 | P-004 |
+| **암묵적 네트워크 접근 금지**(오프라인 전용) | P-005 |
 
 ---
 
-## 5. 참고 문헌
+## 5. Prism — opt-in 대안
 
-| 주제 | URL |
+Prism은 이미 Prism에 의존하는 프로젝트를 위한 명시적 opt-in으로만 제공됩니다
+— 기본값이 아니며, 자동 도입되지 않습니다.
+
+- net472/net48에서 Prism은 **Prism 7.2 / 8.1**입니다(9가 아님).
+- 메커니즘: `IContainerRegistry.RegisterForNavigation<View, ViewModel>()` +
+  `IRegionManager.RequestNavigate("Region", "ViewName")`. Prism 자체의
+  `BindableBase` / `DelegateCommand`를 사용합니다.
+- 기존 Prism 프로젝트를 Prism으로 유지할 때만 사용하십시오. 직접 구현
+  프로젝트를 요청 없이 Prism으로 전환하지 마십시오.
+
+상세:
+[`view-viewmodel-wiring-prism.md`](../.claude/rules/view-viewmodel-wiring-prism.md).
+
+---
+
+## 6. 참고 (rules)
+
+| 주제 | 파일 |
 |---|---|
-| MVVM — Connecting view models to views | https://learn.microsoft.com/dotnet/architecture/maui/mvvm#connecting-view-models-to-views |
-| Navigation — View first vs ViewModel first | https://learn.microsoft.com/dotnet/architecture/maui/navigation |
-| CommunityToolkit.Mvvm | https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/ |
-| WPF Overview | https://learn.microsoft.com/dotnet/desktop/wpf/overview/ |
-
----
-
-## 부록 A — 핵심 개념 요약 (Quick Reference)
-
-### View First vs ViewModel First 판정법
-
-> **질문 하나로 판정**: composition/navigation의 lookup key가 무엇인가?
-> - View name이 key → **View First**
-> - ViewModel type이 key → **ViewModel First**
-
-### 패턴별 분류표
-
-| 패턴 | Lookup key | 분류 | plugin 정책 |
-|---|---|---|---|
-| `Mappings.xaml` implicit DataTemplate | ViewModel 타입 | ViewModel First (Stateful) | ✅ 채택 (CommunityToolkit 경로) |
-| Prism `RegisterForNavigation` + `RequestNavigate("View")` | View name (string) | View First (Stateful) | ✅ 채택 (Prism 경로) |
-| Prism `ViewModelLocator.AutoWireViewModel` | View name | View First (Stateful) | ❌ 금지 (Prism 경로의 단일 메커니즘은 `RegisterForNavigation`) |
-| code-behind `DataContext = new VM()` | (View가 VM 직접 선택) | View First (imperative) | ❌ 금지 |
-| Stylet transient VM + naming convention | ViewModel 타입 | ViewModel First (Stateless) | ❌ 금지 (범위 밖) |
+| MVVM 제약 + 직접 구현 base class | [`mvvm-constraints.md`](../.claude/rules/mvvm-constraints.md) |
+| 핵심 금지 사항 (P-001..P-005) | [`prohibitions.md`](../.claude/rules/prohibitions.md) |
+| View ↔ ViewModel wiring (직접 구현, 기본) | [`view-viewmodel-wiring-handrolled.md`](../.claude/rules/view-viewmodel-wiring-handrolled.md) |
+| View ↔ ViewModel wiring (Prism, opt-in) | [`view-viewmodel-wiring-prism.md`](../.claude/rules/view-viewmodel-wiring-prism.md) |

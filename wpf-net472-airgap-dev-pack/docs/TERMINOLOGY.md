@@ -2,181 +2,109 @@
 
 # wpf-net472-airgap-dev-pack — Terminology
 
-This document defines the MVVM composition styles adopted by wpf-net472-airgap-dev-pack
-based on the official Microsoft definitions. It is the single source of
-truth for the terminology used throughout the plugin.
+This document defines the MVVM stance adopted by wpf-net472-airgap-dev-pack.
+It is the single source of truth for the terminology used throughout the
+plugin.
+
+This fork is an offline, air-gapped fork for **.NET Framework 4.7.2–4.8**
+(net472/net48). Unlike upstream, it does **not** enforce an opinionated
+"Composition Direction" model (View First vs ViewModel First) or a single
+mandated wiring path. It uses one MVVM style and stays pragmatic about how a
+View is connected to its ViewModel.
 
 ---
 
-## 1. Four-Axis Separation Model
+## 1. Hand-rolled MVVM
 
-The relationship between a View and a ViewModel splits into two
-**orthogonal, independent axes**.
+The fork uses ONE MVVM style for all generated code: **dependency-free,
+hand-rolled MVVM** that compiles on net472/net48 (C# 7.3-safe) with no external
+MVVM package.
 
-### Axis 1: Composition Direction (View First vs ViewModel First)
+- ViewModels derive from a hand-rolled **`BindableBase : INotifyPropertyChanged`**
+  (`SetProperty` / `RaisePropertyChanged`).
+- Commands are hand-rolled **`RelayCommand` / `RelayCommand<T> : ICommand`**.
+- If a project lacks these base classes, create them once (e.g. under `Mvvm/`)
+  and reuse them. If a project already has its own base classes, preserve and
+  use those instead.
+- **No CommunityToolkit.Mvvm** — no `ObservableObject`, `[ObservableProperty]`,
+  `[RelayCommand]`, or source generators. **No framework auto-detection** (no
+  DevExpress / CTK / Prism sniffing) — always emit the hand-rolled form.
 
-The Microsoft-official classification rule is a single question:
-**what is the lookup key for composition / navigation?**
+Full base-class definitions and usage: [`mvvm-constraints.md`](../.claude/rules/mvvm-constraints.md).
 
-| Lookup key | Classification |
+---
+
+## 2. View ↔ ViewModel Wiring (pragmatic — match the project)
+
+Wiring is **not** a single enforced path. So generated code fits any existing
+net472/net48 app, all of the following are allowed. **Match what the project
+already uses**, and prefer one style per project for consistency:
+
+| Wiring option | When it fits |
 |---|---|
-| View type name (string) | **View First Composition** |
-| ViewModel type | **ViewModel First Composition** |
+| **Code-behind** `DataContext = new XxxViewModel()` in the View constructor | The simplest, most universal pattern; standalone windows, dialogs, small apps |
+| **DataTemplate mapping** (ViewModel-first): an implicit `DataTemplate` with `DataType` and **no `x:Key`**, so a ViewModel bound to `ContentControl.Content` renders its View | Content/region switching where one host swaps between ViewModels |
+| **DI-resolved** ViewModel assigned to `DataContext` | Apps that already use a container |
 
-- **View First Composition** — the identifier is the View name. Examples:
-  - Prism `RequestNavigate("ContentRegion", "HomeView")`
-  - Prism `ViewModelLocator.AutoWireViewModel="True"` (the View is the anchor)
-  - View code-behind `DataContext = new HomeViewModel();`
+Code-behind `DataContext` assignment is explicitly **allowed** in this fork.
+Do not rewrite a project's existing, working wiring to a different style
+without being asked.
 
-- **ViewModel First Composition** — the identifier is the ViewModel type.
-  Examples:
-  - WPF implicit DataTemplate
-    `<DataTemplate DataType="{x:Type vm:HomeViewModel}">`
-  - A navigation service that targets a ViewModel type
-
-References:
-- https://learn.microsoft.com/dotnet/architecture/maui/navigation
-- https://learn.microsoft.com/dotnet/architecture/maui/mvvm#connecting-view-models-to-views
-
-### Axis 2: ViewModel State Management (Stateful vs Stateless)
-
-- **Stateful ViewModel** — the ViewModel instance holds its own state
-  directly (the de-facto standard across the Korean WPF ecosystem).
-- **Stateless ViewModel** — state is delegated to an external Manager or
-  Service, and the ViewModel is transient (the recommended style in
-  Stylet and Caliburn.Micro).
-
-### Orthogonality of the Two Axes
-
-| Composition Direction | State Management | Typical example |
-|---|---|---|
-| View First | Stateful | Prism `RegisterForNavigation` + `RegionManager` (wpf-net472-airgap-dev-pack Prism path); a classical Prism `ViewModelLocator` setup |
-| View First | Stateless | (rare) View fetches data from external state on every render |
-| **ViewModel First** | **Stateful** | **wpf-net472-airgap-dev-pack CommunityToolkit.Mvvm path** (`Mappings.xaml` + implicit DataTemplate) |
-| ViewModel First | Stateless | Stylet's recommended transient-VM style |
-
-Pre-v1.6.4 docs implicitly assumed "ViewModel First ⇒ Stateless" and used a
-single "View First MVVM" label. The two axes are in fact independent, and
-wpf-net472-airgap-dev-pack actually enforces two distinct combinations depending on the
-chosen MVVM framework (see §2).
+Full examples: [`view-viewmodel-wiring-handrolled.md`](../.claude/rules/view-viewmodel-wiring-handrolled.md).
 
 ---
 
-## 2. Adopted Combinations
+## 3. ViewModel Purity
 
-wpf-net472-airgap-dev-pack enforces **different** composition styles depending on the
-chosen MVVM framework. Both paths share **Stateful ViewModel** as the
-state-management style.
+- ViewModels must not reference `System.Windows.*` UI types (`Visibility`,
+  `Brush`, `ImageSource`, `Thickness`, `Window`, `MessageBox`, …).
+- **Allowed exception:** `System.Windows.Input.ICommand` (for `RelayCommand`).
+- Use BCL / domain types for bindable properties: `string`, `int`, `bool`,
+  `DateTime`, `ObservableCollection<T>`, other ViewModels, etc. Convert UI
+  types in the View layer (converters / triggers).
+- For collections, use `ObservableCollection<T>`; keep any `CollectionView`
+  behind a service so the ViewModel stays free of WPF UI types.
 
-### 2.1 CommunityToolkit.Mvvm path (default)
-
-> **ViewModel First Composition + Stateful ViewModel**
-
-Concrete mechanism: implicit DataTemplate mapping via `Mappings.xaml`.
-
-```xml
-<DataTemplate DataType="{x:Type vm:HomeViewModel}">
-    <views:HomeView />
-</DataTemplate>
-```
-
-```csharp
-CurrentViewModel = new HomeViewModel();  // the ViewModel instance is the lookup key
-```
-
-Details: [`view-viewmodel-wiring-handrolled.md`](../.claude/rules/view-viewmodel-wiring-handrolled.md)
-
-### 2.2 Prism 9 path (alternative)
-
-> **View First Composition + Stateful ViewModel**
-
-Concrete mechanism:
-`IContainerRegistry.RegisterForNavigation<View, ViewModel>()` registration
-plus `IRegionManager.RequestNavigate("Region", "ViewName")` navigation
-(by **view-name string**).
-
-```csharp
-containerRegistry.RegisterForNavigation<HomeView, HomeViewModel>();
-// ...
-_regionManager.RequestNavigate("ContentRegion", "HomeView");  // View name is the lookup key
-```
-
-Details: [`view-viewmodel-wiring-prism.md`](../.claude/rules/view-viewmodel-wiring-prism.md)
-
-### 2.3 Shared
-
-- **Stateful ViewModel** is the standard state-management style on both
-  paths.
-- Each framework allows **exactly one** matching mechanism; multiple
-  View-VM matching paths must not co-exist in the same project.
-- ViewModel classes must not reference `System.Windows.*` UI types (except
-  `ICommand`).
+Details: [`mvvm-constraints.md`](../.claude/rules/mvvm-constraints.md).
 
 ---
 
-## 3. Explicitly Prohibited Patterns
+## 4. Prohibitions
 
-Full rules live in [`prohibitions.md`](../.claude/rules/prohibitions.md).
+The few hard "do not" rules (full list in
+[`prohibitions.md`](../.claude/rules/prohibitions.md)):
 
-Summary:
-
-| Prohibited pattern | Classification | Reason |
-|---|---|---|
-| Prism `ViewModelLocator.AutoWireViewModel="True"` | View First (Prism's alternate mechanism) | The Prism path's single matching mechanism is `RegisterForNavigation`; `ViewModelLocator` competes with it |
-| View code-behind `DataContext = new XxxViewModel()` | View First (imperative) | Breaks the CommunityToolkit path's single matching path |
-| `<UserControl.DataContext><vm:XxxVM /></UserControl.DataContext>` | View First (declarative) | Same as above |
-| Stateless ViewModel + transient IoC registration | Stateless VM composition | A different framework ecosystem (Stylet / Caliburn) — out of scope |
-| Any matching mechanism beyond `Mappings.xaml` / `RegisterForNavigation` | (any) | Single matching path per project must be preserved |
-
----
-
-## 4. Terminology Change History
-
-Pre-v1.6.4 docs uniformly labeled wpf-net472-airgap-dev-pack's adopted style as
-**"View First MVVM"**, which conflicts with Microsoft's official
-definition. In particular, the CommunityToolkit.Mvvm path
-(`Mappings.xaml` DataTemplate) uses the ViewModel type as the lookup key
-and is therefore **ViewModel First Composition**, not View First.
-
-The labels were corrected as follows:
-
-| Era | Label |
+| Prohibition | Rule |
 |---|---|
-| Pre-v1.6.4 | "View First MVVM" (single label) — incorrect |
-| v1.6.4+ (CommunityToolkit path) | "ViewModel First Composition + Stateful ViewModel" |
-| v1.6.4+ (Prism path) | "View First Composition + Stateful ViewModel" |
-
-> **The actual code patterns enforced by the plugin have not changed.**
-> Only the labels have been corrected to standard terminology, so no user
-> code modification is required.
+| **No CommunityToolkit.Mvvm** in any form (base classes, attributes, namespaces, source generators) | P-001 |
+| **No `System.Windows.*` UI types in ViewModels**, except `System.Windows.Input.ICommand` | P-002 |
+| **No framework auto-introduction or auto-detection** (CTK / Prism / DevExpress / Generic Host / DI added to a project that lacks it; framework-sniffing logic) | P-003 |
+| **No framework / project modernization** (raising the target framework, retargeting to .NET (Core), converting project format, migrating package management, bumping `LangVersion`) without explicit request | P-004 |
+| **No implicit network access** (offline only) | P-005 |
 
 ---
 
-## 5. References
+## 5. Prism — opt-in alternative
 
-| Topic | URL |
+Prism remains available **only** as an explicit opt-in for projects that
+already depend on Prism — it is never the default and is never auto-introduced.
+
+- On net472/net48, Prism is **Prism 7.2 / 8.1** (not 9).
+- Mechanism: `IContainerRegistry.RegisterForNavigation<View, ViewModel>()` +
+  `IRegionManager.RequestNavigate("Region", "ViewName")`, using Prism's own
+  `BindableBase` / `DelegateCommand`.
+- Use it only when keeping an existing Prism project on Prism; never convert a
+  hand-rolled project to Prism without being asked.
+
+Details: [`view-viewmodel-wiring-prism.md`](../.claude/rules/view-viewmodel-wiring-prism.md).
+
+---
+
+## 6. References (rules)
+
+| Topic | File |
 |---|---|
-| MVVM — Connecting view models to views | https://learn.microsoft.com/dotnet/architecture/maui/mvvm#connecting-view-models-to-views |
-| Navigation — View first vs ViewModel first | https://learn.microsoft.com/dotnet/architecture/maui/navigation |
-| CommunityToolkit.Mvvm | https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/ |
-| WPF Overview | https://learn.microsoft.com/dotnet/desktop/wpf/overview/ |
-
----
-
-## Appendix A — Quick Reference
-
-### View First vs ViewModel First Decision Rule
-
-> **One-question test**: what is the lookup key for composition / navigation?
-> - View name is the key → **View First**
-> - ViewModel type is the key → **ViewModel First**
-
-### Pattern Classification Table
-
-| Pattern | Lookup key | Classification | Plugin policy |
-|---|---|---|---|
-| `Mappings.xaml` implicit DataTemplate | ViewModel type | ViewModel First (Stateful) | ✅ Adopted (CommunityToolkit path) |
-| Prism `RegisterForNavigation` + `RequestNavigate("View")` | View name (string) | View First (Stateful) | ✅ Adopted (Prism path) |
-| Prism `ViewModelLocator.AutoWireViewModel` | View name | View First (Stateful) | ❌ Prohibited (Prism path's single mechanism is `RegisterForNavigation`) |
-| code-behind `DataContext = new VM()` | (View picks its own VM) | View First (imperative) | ❌ Prohibited |
-| Stylet transient VM + naming convention | ViewModel type | ViewModel First (Stateless) | ❌ Prohibited (out of scope) |
+| MVVM constraints + hand-rolled base classes | [`mvvm-constraints.md`](../.claude/rules/mvvm-constraints.md) |
+| Hard prohibitions (P-001..P-005) | [`prohibitions.md`](../.claude/rules/prohibitions.md) |
+| View ↔ ViewModel wiring (hand-rolled, default) | [`view-viewmodel-wiring-handrolled.md`](../.claude/rules/view-viewmodel-wiring-handrolled.md) |
+| View ↔ ViewModel wiring (Prism, opt-in) | [`view-viewmodel-wiring-prism.md`](../.claude/rules/view-viewmodel-wiring-prism.md) |

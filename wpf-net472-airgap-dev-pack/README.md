@@ -6,7 +6,7 @@
 
 ### The Ultimate WPF Development Toolkit for Claude Code
 
-[![Version](https://img.shields.io/badge/version-1.7.4-blue.svg)](https://github.com/christian289/dotnet-with-claudecode)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Peace-Min/dotnet-with-claudecode)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET_SDK-10.0.300+-purple.svg)](https://dotnet.microsoft.com/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-orange.svg)](https://claude.ai)
@@ -270,7 +270,7 @@ For complex tasks, a specialized agent is recommended (e.g. `wpf-performance-opt
 
 ### Command Skills vs Knowledge
 
-- **Command skills** (`/wpf-net472-airgap-dev-pack:<name>`) — slash-invocable generators and plugin operations (19 bundled; see **Skills & Knowledge** below).
+- **Command skills** (`/wpf-net472-airgap-dev-pack:<name>`) — slash-invocable generators and plugin operations (14 bundled; see **Skills & Knowledge** below).
 - **Knowledge topics** — reference content served by WpfDevPackMcp; kept out of the session skill listing (no per-session context cost).
 
 ---

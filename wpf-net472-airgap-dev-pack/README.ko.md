@@ -6,7 +6,7 @@
 
 ### Claude Code를 위한 최고의 WPF 개발 도구 키트
 
-[![Version](https://img.shields.io/badge/version-1.7.4-blue.svg)](https://github.com/christian289/dotnet-with-claudecode)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Peace-Min/dotnet-with-claudecode)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET_SDK-10.0.300+-purple.svg)](https://dotnet.microsoft.com/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-orange.svg)](https://claude.ai)
@@ -21,23 +21,25 @@
 
 ## ✨ 하이라이트
 
-> **MVVM Composition 방식**: wpf-net472-airgap-dev-pack은 선택한 MVVM 프레임워크에 따라 **단일 매칭 경로**를 강제합니다. 두 경로 모두 **Stateful ViewModel**을 사용합니다:
-> - **CommunityToolkit.Mvvm** (기본) → **ViewModel First Composition**, `Mappings.xaml` + implicit DataTemplate.
-> - **Prism 9** (대안) → **View First Composition**, `RegisterForNavigation` + `IRegionManager.RequestNavigate`.
->
-> Prism `ViewModelLocator.AutoWireViewModel`, View code-behind `DataContext = new VM()`, XAML 인라인 `DataContext`, Stateless-VM 패턴은 모두 금지됩니다 ([`.claude/rules/prohibitions.md`](./.claude/rules/prohibitions.md) 및 [`docs/TERMINOLOGY.ko.md`](./docs/TERMINOLOGY.ko.md) 참조).
->
-> v1.6.4 이전 문서는 이 둘을 일괄적으로 "View First MVVM"으로 라벨링했으나, 이는 Microsoft 공식 정의와 충돌했습니다 (`Mappings.xaml`의 lookup key는 ViewModel 타입이므로 ViewModel First). v1.6.4에서 경로별 라벨로 정정되었으며, 강제되는 코드 규칙은 변경되지 않았습니다.
+> **MVVM**: 의존성 없는 **직접 구현(hand-rolled) MVVM** — `BindableBase`
+> (`INotifyPropertyChanged`) + `RelayCommand` / `RelayCommand<T>` (`ICommand`)를
+> **net472/net48 (C# 7.3)** 기준으로 컴파일합니다. **CommunityToolkit 미사용**,
+> 프레임워크 자동 감지 없음. 프로젝트에 베이스 클래스가 없으면 생성기가 만들어 주고,
+> 자체 베이스 클래스가 있으면 그것을 재사용합니다. 와이어링은 실용적입니다 — 코드비하인드
+> `DataContext`, implicit `DataTemplate`, DI 중 프로젝트가 이미 쓰는 방식에 맞춥니다.
+> Prism은 이미 Prism을 쓰는 프로젝트(net472에서 7.2/8.1)를 위한 **opt-in** 대안으로만
+> 남습니다. [`.claude/rules/mvvm-constraints.md`](./.claude/rules/mvvm-constraints.md) 및
+> [`.claude/rules/prohibitions.md`](./.claude/rules/prohibitions.md)를 참고하세요.
 
 <table>
 <tr>
 <td width="50%">
 
 ### 🤖 AI 기반 개발
-- **10개 전문 에이전트**로 다양한 WPF 작업 수행
+- 다양한 WPF 작업을 위한 **10개 전문 에이전트**
 - **세션 모델 그대로 사용** — 에이전트가 현재 모델을 상속
 - **MCP 기반 지식 제공** — WpfDevPackMcp가 답변 전 검색(search-before-answer)
-- 듀얼 프레임워크 지원을 위한 **Prism 9** 컴패니언 파일
+- **Prism** 컴패니언 파일 (opt-in, 기존 Prism 프로젝트용)
 
 </td>
 <td width="50%">
@@ -51,10 +53,10 @@
 <tr>
 <td width="50%">
 
-### 📚 스마트 문서화
-- **Microsoft Learn** 플러그인 (마켓플레이스에서 설치)
-- 최신 문서를 위한 **Context7** (외부)
-- 시맨틱 코드 분석을 위한 **Serena** (외부)
+### 📚 로컬 지식 (오프라인)
+- **WpfDevPackMcp**가 로컬 클론에서 WPF 토픽을 제공 (네트워크 없음)
+- **HandMirrorMcp**가 로컬 어셈블리/NuGet 기준으로 API를 검증
+- **Serena**로 시맨틱 코드 분석 (선택, 로컬)
 
 </td>
 <td width="50%">
@@ -72,7 +74,22 @@
 
 ## 📦 설치
 
-### 마켓플레이스에서 설치 (권장)
+### 빠른 시작 (폐쇄망 — 권장)
+
+폐쇄망 PC에서 (.NET 10 RTM SDK, Claude Code, NuGet 접근, VS MSBuild가 갖춰져 있어야 합니다):
+
+```bash
+git clone <사내-내부-원격>/dotnet-with-claudecode.git
+cd dotnet-with-claudecode
+pwsh ./setup.ps1          # 최초 1회: bin/ 빌드(MCP 서버 + XamlStyler) + 지식 경로 설정
+claude --plugin-dir ./wpf-net472-airgap-dev-pack
+```
+
+`setup.ps1`은 단일 부트스트랩 단계입니다 (git은 clone 시 스크립트를 자동 실행할 수 없습니다). 새 커밋을 pull한 뒤에만 다시 실행하면 됩니다. 런타임에는 모든 것이 로컬/오프라인입니다 — `dnx`도, NuGet 해석도, `git pull`도 없습니다. `bin/`이 아직 빌드되지 않았다면 SessionStart 훅이 알려 줍니다.
+
+> `pwsh`가 없나요? Windows PowerShell 5.1에서도 동작합니다: `powershell -ExecutionPolicy Bypass -File ./setup.ps1`.
+
+### 마켓플레이스에서 설치
 
 ```bash
 # 1단계: 마켓플레이스 추가 (최초 1회)
@@ -88,50 +105,57 @@
 claude --plugin-dir ./wpf-net472-airgap-dev-pack
 ```
 
-### 업데이트
+### 업데이트 (폐쇄망)
+
+자동 업데이트는 **꺼져 있어야 하며 계속 꺼진 상태를 유지해야 합니다**. 망 외부에서 새로
+빌드한 번들을 전달받아서만 업데이트하세요 — 플러그인이나 마켓플레이스가 스스로 pull하게
+두지 마세요.
 
 ```bash
-# 수동 업데이트
-claude plugin update wpf-net472-airgap-dev-pack@dotnet-net472-airgap-plugins
-
-# 또는 마켓플레이스 자동 업데이트 활성화
-/plugin → Marketplaces → dotnet-net472-airgap-plugins → Enable auto-update
+# 승인된 새 번들을 적용한 뒤, (선택적으로) 로컬에서 재설치:
+claude --plugin-dir ./wpf-net472-airgap-dev-pack
 ```
 
-> **참고:** 서드파티 마켓플레이스는 기본적으로 자동 업데이트가 비활성화되어 있습니다.
+> **참고:** 서드파티 마켓플레이스는 기본적으로 자동 업데이트가 비활성화되어 있습니다. 비활성화 상태를 유지하세요.
 
 ### 요구사항
 
 | 요구사항 | 버전 | 비고 |
 |----------|------|------|
-| .NET SDK | **10.0.300+** | file-based app 훅 실행에 필수 |
+| .NET SDK | **10.0.300+ (RTM)** | C# 훅을 실행하고 로컬 MCP 서버를 빌드합니다. *프리뷰* .NET 10 SDK는 시작 시 크래시하는 MCP 바이너리를 생성하므로 — RTM SDK를 사용하세요. |
 | Claude Code | 최신 | - |
-| uv | 최신 | Serena MCP용 |
+| uv | 최신 | **선택** — Serena를 로컬에서 실행하기로 선택한 경우에만 |
 
-> **대상 프레임워크 vs SDK**: .NET SDK 10.0.300 이상은 **wpf-net472-airgap-dev-pack 실행**에 필요합니다 (훅이 file-based app 사용).
-> 생성되는 WPF 프로젝트는 **.NET 8 이상을 대상**으로 설정할 수 있습니다 — 필요시 .NET 10과 함께 해당 버전 SDK를 설치하세요.
+> **대상 프레임워크 vs 지원 SDK**: .NET SDK 10.0.300+는 **플러그인을 실행할 뿐입니다** (훅 + 로컬 MCP 빌드).
+> 이 포크가 생성·유지보수하는 WPF 코드는 **.NET Framework 4.7.2–4.8 (`net472`/`net48`)**을 대상으로 하며, 지원 SDK와는 독립적입니다.
 
-### 필수 플러그인 종속성
+### MCP 서버 (로컬 / 오프라인)
 
-wpf-net472-airgap-dev-pack 에이전트는 다음 Claude Code 플러그인이 별도로 설치되어야 합니다:
+이 포크는 **MCP 서버를 번들로 제공하며 온라인 MCP를 전혀 요구하지 않습니다.** 승인된
+피드에 접근 가능한 머신에서 번들 준비 시 한 번만 빌드하면, 이후에는 시작 시 `dnx`/NuGet
+해석 없이 `bin/`에서 실행됩니다:
 
-| 플러그인 | MCP 서버 | 용도 |
-|---------|----------|------|
-| **[context7](https://github.com/upstash/context7)** | context7 | 최신 라이브러리/프레임워크 문서 조회 |
-| **[microsoft-docs](https://github.com/MicrosoftDocs/mcp)** | microsoft-learn | 공식 Microsoft 문서 및 코드 샘플 조회 |
-| **[csharp-lsp](https://github.com/razzmatazz/csharp-language-server)** | csharp | C# Language Server Protocol (정의, 참조, 진단) |
+```powershell
+pwsh ./tools/build-local-bin.ps1
+# bin/WpfDevPackMcp (../mcp에서)를 빌드하고 HandMirrorMcp + XamlStyler.Console을 vendoring
+```
 
-### 필수 MCP
-
-wpf-net472-airgap-dev-pack 에이전트가 필요로 하는 다음 MCP 서버는 **Claude Code 플러그인으로 설치하면 안 되며**, `uv`를 통해 MCP 서버로 직접 설치해야 합니다.
-
-| MCP 서버 | 용도 | 설치 방법 |
+| MCP 서버 | 번들 | 용도 |
 |---|---|---|
-| **[serena](https://github.com/oraios/serena)** | 시맨틱 코드 분석, 심볼 네비게이션 | [Quick Start](https://github.com/oraios/serena#quick-start) 절차에 따라 `uv`로 직접 설치하세요. Claude Code 플러그인 경로를 사용하지 **마세요** — 그 이유는 [Serena Claude Code 문서의 Attention 안내](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code)를 참고하세요 (Claude Code 내장 도구 description이 ~16k 토큰을 차지하면서 플러그인 경로로 등록한 Serena의 도구 사용을 강하게 편향시킵니다). |
+| **WpfDevPackMcp** | ✅ `bin/WpfDevPackMcp` | 로컬 WPF 지식 토픽 (오프라인; 로컬 클론을 읽으며 pull하지 않음) |
+| **HandMirrorMcp** | ✅ `bin/HandMirrorMcp` | 로컬 어셈블리 & NuGet 기준으로 네임스페이스/시그니처 검증 |
 
-> **참고:** wpf-net472-airgap-dev-pack은 런타임에 Claude Code 플러그인 가용성을 확인하고 누락된 경우 경고합니다. Serena MCP는 위 절차대로 별도 설정이 필요합니다.
+**제거된 온라인 종속성:** `context7`와 `microsoft-docs` / Microsoft Learn은 **사용하지
+않으며 필요하지도 않습니다**. 플러그인은 이들을 확인하지 않고, 없어도 품질이 저하되지
+않습니다.
 
-Claude Code 마켓플레이스 또는 `/install-plugin` 명령으로 설치하세요.
+**선택적 로컬 도구** (플러그인은 이들 없이도 완전히 동작합니다 — 승인된 오프라인 패키지에서만
+설치하고, 런타임에 가져오지 마세요):
+
+| 도구 | 용도 | 없을 경우 |
+|---|---|---|
+| [**serena**](https://github.com/oraios/serena) | 시맨틱 코드 분석, 심볼 네비게이션 | 에이전트가 Read/Grep/Glob로 폴백합니다. 사용한다면 `uv`로 직접 설치하세요 (Claude Code 플러그인 경로가 아님 — [Attention 안내](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code) 참고). |
+| [**csharp-lsp**](https://github.com/razzmatazz/csharp-language-server) | C# LSP (정의, 참조, 진단) | `wpf-code-reviewer`가 텍스트 분석으로 폴백합니다. |
 
 ---
 
@@ -140,10 +164,10 @@ Claude Code 마켓플레이스 또는 `/install-plugin` 명령으로 설치하�
 ### 새 WPF 프로젝트 생성
 
 ```bash
-# CommunityToolkit.Mvvm 사용 (권장)
+# net472/net48 + 직접 구현(hand-rolled) MVVM (기본)
 /wpf-net472-airgap-dev-pack:make-wpf-project MyApp
 
-# Prism Framework 사용
+# Prism (opt-in; 기존 Prism 프로젝트)
 /wpf-net472-airgap-dev-pack:make-wpf-project MyApp --prism
 ```
 
@@ -208,7 +232,7 @@ wpf-architect: [A-1] 어떤 앱인가요? 컨셉을 설명해주세요.
    (키워드 감지: "차트", "실시간" → LiveCharts2, 성능 기본값 자동 설정)
 
 wpf-architect: [A-2] 아키텍처 패턴은?
-   → User 선택: "MVVM + CommunityToolkit"
+   → User 선택: "직접 구현(hand-rolled) MVVM"
 
 wpf-architect: [A-3] 프로젝트 규모는?
    → User 선택: "중간 (5-15개 View)"
@@ -238,7 +262,7 @@ wpf-net472-airgap-dev-pack은 키워드 감지 훅을 **사용하지 않습니�
 | 질문 주제 | 토픽 |
 |-----------|------|
 | CustomControl 작성 | `authoring-wpf-controls` |
-| CommunityToolkit MVVM | `implementing-handrolled-mvvm` |
+| 직접 구현(hand-rolled) MVVM | `implementing-handrolled-mvvm` |
 | DrawingContext 렌더링 | `rendering-with-drawingcontext` |
 | 고성능 렌더링 | `rendering-wpf-high-performance` |
 
@@ -262,7 +286,7 @@ wpf-net472-airgap-dev-pack은 키워드 감지 훅을 **사용하지 않습니�
 | 🏗️ **wpf-architect** | 전략적 아키텍처 및 설계 결정 |
 | 🎨 **wpf-control-designer** | CustomControl 구현 |
 | 📐 **wpf-xaml-designer** | XAML 스타일 및 템플릿 |
-| 🔄 **wpf-mvvm-expert** | MVVM 패턴 및 CommunityToolkit |
+| 🔄 **wpf-mvvm-expert** | MVVM 패턴 (직접 구현, hand-rolled) |
 | 🔗 **wpf-data-binding-expert** | 복잡한 바인딩 및 유효성 검사 |
 | ⚡ **wpf-performance-optimizer** | 렌더링 및 성능 |
 | 🔍 **wpf-code-reviewer** | 코드 품질 분석 |
@@ -274,14 +298,12 @@ wpf-net472-airgap-dev-pack은 키워드 감지 훅을 **사용하지 않습니�
 
 | 플러그인 | MCP 서버 | 용도 |
 |---------|----------|------|
-| **HandMirrorMcp** | HandMirrorMcp | .NET 어셈블리/NuGet 검사 (내장) |
-| **WpfDevPackMcp** | WpfDevPackMcp | WPF 지식 토픽, 로컬 저장소 클론에서 온디맨드 제공 (내장) |
-| **context7** | context7 | 라이브러리/프레임워크 문서 |
-| _(`uv`로 직접 설치한 MCP)_ | **serena** | 시맨틱 코드 분석 |
-| **microsoft-docs** | microsoft-learn | 공식 Microsoft 문서 |
-| **csharp-lsp** | csharp | C# LSP 코드 인텔리전스 |
+| **HandMirrorMcp** | HandMirrorMcp | .NET 어셈블리/NuGet 검사 (번들, 로컬) |
+| **WpfDevPackMcp** | WpfDevPackMcp | 로컬 저장소 클론에서 제공하는 WPF 지식 토픽 (번들, 로컬) |
+| _(선택, `uv`)_ | **serena** | 시맨틱 코드 분석 (선택, 로컬) |
+| _(선택)_ | **csharp-lsp** | C# LSP 코드 인텔리전스 (선택, 로컬) |
 
-> 설치 방법은 [필수 플러그인 종속성](#필수-플러그인-종속성) 및 [필수-mcp](#필수-mcp) 섹션을 참고하세요. Serena는 Claude Code 플러그인이 **아니며**, `uv`로 MCP 서버로 직접 설치해야 합니다.
+> 번들된 두 MCP 서버는 모두 네트워크 없이 `bin/`에서 실행됩니다. `context7`와 `microsoft-docs` / Microsoft Learn은 **사용하지 않습니다**. Serena / csharp-lsp는 선택 사항입니다 — 위의 [MCP 서버 (로컬 / 오프라인)](#mcp-서버-로컬--오프라인) 섹션을 참고하세요.
 
 ### 📚 스킬 & 지식
 
