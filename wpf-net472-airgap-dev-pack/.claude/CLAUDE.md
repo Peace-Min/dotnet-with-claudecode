@@ -46,24 +46,27 @@ from approved offline packages — never fetch them at runtime.
 
 ## MVVM Composition Style
 
-wpf-net472-airgap-dev-pack enforces a **single matching path per MVVM framework**, both
-based on **Stateful ViewModel**. The composition direction differs by
-framework. For full terminology and Microsoft references, see
-[`docs/TERMINOLOGY.md`](../docs/TERMINOLOGY.md).
+This fork uses ONE MVVM style for all generated code: **dependency-free,
+hand-rolled MVVM** that compiles on net472/net48 with no external MVVM package
+and works in any project.
 
-| MVVM framework | Composition Direction | Mechanism | Wiring rules |
-|---|---|---|---|
-| CommunityToolkit.Mvvm (default) | **ViewModel First** | `Mappings.xaml` + implicit DataTemplate | `rules/view-viewmodel-wiring-communitytoolkit.md` |
-| Prism 9 (alternative) | **View First** | `RegisterForNavigation` + `IRegionManager` | `rules/view-viewmodel-wiring-prism.md` |
+- ViewModels derive from a hand-rolled **`BindableBase : INotifyPropertyChanged`**
+  (`SetProperty` / `RaisePropertyChanged`). Commands are hand-rolled
+  **`RelayCommand` / `RelayCommand<T> : ICommand`**.
+- If the project has no such base classes, **create them once** (e.g. under
+  `Mvvm/BindableBase.cs` + `Mvvm/RelayCommand.cs`), then reuse them. The
+  `make-wpf-viewmodel` scaffolder emits them if absent.
+- **No CommunityToolkit.Mvvm** — no `ObservableObject`, `[ObservableProperty]`,
+  `[RelayCommand]`, or source generators. **No framework auto-detection**
+  (no DevExpress/CTK/Prism sniffing) — always emit the hand-rolled form.
+- View/ViewModel wiring uses a single explicit mechanism per project; see
+  `rules/view-viewmodel-wiring-handrolled.md`. **Preserve** whatever an existing
+  project already uses (its own base class, DataTemplate mapping, etc.).
 
-> Pre-v1.6.4 docs uniformly labeled this as "View First MVVM". That single
-> label was incorrect per Microsoft's official definition (lookup key for
-> `Mappings.xaml` is the ViewModel type → ViewModel First). v1.6.4 corrects
-> the labels per path. The enforced code patterns are unchanged.
+> **Prism** stays available only as an explicit opt-in for projects that already
+> use it — never the default. See `rules/view-viewmodel-wiring-prism.md`.
 
-See `rules/prohibitions.md` (P-001…P-004) for banned alternatives
-(`ViewModelLocator`, code-behind `DataContext` assignment, Stateless VM
-pattern, mixing the two paths, etc.).
+See `rules/mvvm-constraints.md` and `rules/prohibitions.md` for details.
 
 ---
 
@@ -71,13 +74,14 @@ pattern, mixing the two paths, etc.).
 
 These rules MUST survive context compression. If prior context is lost, re-read this section:
 
-1. **No ViewModelLocator** — Use DI + DataTemplate mapping only (`rules/prohibitions.md`)
-2. **No System.Windows in ViewModel** — BCL types only (`rules/mvvm-constraints.md`)
-3. **Freeze all Freezable objects** — Brush, Pen, Geometry (`rules/freezable-performance.md`)
-4. **Generic.xaml = MergedDictionaries hub only** (`rules/resourcedictionary-patterns.md`)
-5. **Verify API signatures with HandMirror before writing code**
-6. **Single matching path per framework** — ViewModel First (CommunityToolkit, `Mappings.xaml`) or View First (Prism, `RegisterForNavigation`). See `docs/TERMINOLOGY.md` and `rules/` for framework-specific wiring.
-7. **WPF knowledge topics are fetched via `WpfDevPackMcp get_wpf_topic(id)`** — not loaded from `skills/`.
+1. **Target is .NET Framework 4.7.2–4.8** — never modernize the framework, project format, package-management style, or C# version; detect & preserve the existing project shape. Default emitted C# is **7.3-safe** (see `## Target Framework`).
+2. **Offline only** — local source/assemblies/feeds/docs and preinstalled tools; no network fetch, no `dnx`/`uvx`/online NuGet restore or search.
+3. **MVVM is dependency-free hand-rolled** `BindableBase`/`RelayCommand` — no CommunityToolkit, no framework auto-detection; create the base classes if absent (`rules/mvvm-constraints.md`).
+4. **No System.Windows in ViewModel** — BCL types only (`rules/mvvm-constraints.md`)
+5. **Freeze all Freezable objects** — Brush, Pen, Geometry (`rules/freezable-performance.md`)
+6. **Generic.xaml = MergedDictionaries hub only** (`rules/resourcedictionary-patterns.md`)
+7. **Verify API signatures with HandMirrorMcp (local) before writing code**
+8. **WPF knowledge topics are fetched via `WpfDevPackMcp get_wpf_topic(id)`** — not loaded from `skills/`.
 
 ---
 
@@ -107,44 +111,63 @@ new conversation.
 The file is personal and is covered by the repo's `.gitignore`
 (`.claude/*.local.md`).
 
-## .NET Version Configuration
+## Target Framework — .NET Framework 4.7.2–4.8 (net472/net48)
 
-### Version Selection Rules
+This fork **maintains and extends existing** Windows WPF apps on **.NET Framework
+4.7.2–4.8**. It does NOT modernize them. The default target is `net472`/`net48`,
+not .NET (Core) `netX.0`.
 
-1. **Minimum supported version**: **.NET 8** (C# 12)
-2. **User specifies version** → Use that version with corresponding C# version
-3. **No specification** → Use **latest stable .NET** (currently .NET 10)
+### Hard guardrails (highest priority — survive context compression)
 
-### .NET ↔ C# Version Mapping
+1. **Never modernize the framework.** Do NOT raise `TargetFrameworkVersion` /
+   `TargetFramework`, retarget to `netX.0`, or convert the project format unless
+   the user explicitly asks. New projects default to `net48` (or `net472` if asked).
+2. **Detect and preserve the existing project shape** before editing:
+   - SDK-style vs non-SDK (legacy MSBuild XML) `.csproj`
+   - `PackageReference` vs `packages.config`
+   - `app.config` + assembly **binding redirects**, platform target
+     (`AnyCPU`/`x86`/`x64`, `Prefer32Bit`), and existing build configurations
+3. **Match the project's effective C# language version.** Do NOT assume C# 7.3
+   from the framework alone — a `net472` project may compile with a newer Roslyn.
+   But never EMIT syntax the project can't compile. When `LangVersion` is unknown
+   or default for net472, target **C# 7.3** (see table below). Verify with
+   HandMirrorMcp `analyze_csproj` / `get_type_info` when unsure.
+4. **Preserve MVVM composition.** Keep the project's existing View/ViewModel
+   wiring and base classes. Default generated MVVM is dependency-free hand-rolled
+   `BindableBase`/`RelayCommand` (`rules/mvvm-constraints.md`). Do NOT introduce
+   CommunityToolkit.Mvvm, Prism, Generic Host, or any DI/MVVM framework unless
+   explicitly requested.
+5. **Offline only.** Use local assemblies, local NuGet feeds, and approved local
+   docs. No restore against public feeds; no `dnx`/`uvx`/online NuGet search.
 
-| .NET Version | C# Version | TargetFramework | Key Features |
-|--------------|------------|-----------------|--------------|
-| .NET 10 | C# 14 | `net10.0-windows` | Extensions, field keyword |
-| .NET 9 | C# 13 | `net9.0-windows` | params collections, lock object |
-| .NET 8 | C# 12 | `net8.0-windows` | Primary constructors, collection expressions |
-| .NET 7 | C# 11 | `net7.0-windows` | Raw string literals, list patterns |
-| .NET 6 | C# 10 | `net6.0-windows` | Global using, file-scoped namespace |
-| .NET 5 | C# 9 | `net5.0-windows` | Records, init-only, top-level statements |
-| .NET Core 3.1 | C# 8 | `netcoreapp3.1` | Nullable reference types, async streams |
-| .NET Framework 4.8 | C# 7.3 | `net48` | Tuples, pattern matching, local functions |
+### C# language features safe on net472/net48 (default C# 7.3)
 
-> **Update Policy**: When new .NET version releases, add new row to this table.
-> Last updated: 2026-01 (Latest stable: .NET 10)
+Default to **C# 7.3** unless the csproj proves a higher `LangVersion`.
 
-### Code Generation Rules
+| Feature | Safe by default on net472? |
+|---|---|
+| tuples, `out var`, `is`/`switch` pattern matching, local functions | ✅ yes (C# 7.x) |
+| `async`/`await`, `in`/`ref readonly`, `Span<T>` (via `System.Memory`) | ✅ yes |
+| expression-bodied members, `nameof`, string interpolation | ✅ yes |
+| nullable reference types (`#nullable`, `?` annotations) | ❌ no (C# 8) |
+| `using` declarations, default interface members, ranges/indices | ❌ no (C# 8) |
+| records, init-only setters, target-typed `new`, top-level statements | ❌ no (C# 9) |
+| file-scoped namespaces, global usings, `ImplicitUsings` | ❌ no (C# 10 / SDK-style) |
 
-When generating WPF projects or code:
+If the project sets a higher `LangVersion`, the corresponding features may be used — verify first.
 
-```
-IF user specifies ".NET X":
-    Use netX.0-windows + C# version from mapping table
-ELSE:
-    Use latest stable .NET from mapping table (top row)
-```
+### Build & verification
 
-- Always use **maximum C# features** available for the target .NET version
-- Use `Microsoft.Extensions.Hosting` matching the .NET major version
-- Example: .NET 10 → `Microsoft.Extensions.Hosting` 10.x
+- Build with the solution's established **Visual Studio MSBuild** toolchain.
+  Discover it via `vswhere.exe` (or an admin-provided fixed MSBuild path):
+  `& $MSBuildPath .\Product.sln /m /t:Build /p:Configuration=Debug`.
+- Use `dotnet build` only for solutions proven to support it. **Never** restore
+  against public feeds — use an approved local/internal feed only.
+- A clean compile does not instantiate XAML; verify representative views/templates
+  load at runtime where practical.
+
+> The plugin's own support runtime (hooks, MCP) uses .NET 10 — that is the tooling
+> runtime, independent of the net472/net48 **target** of the apps being developed.
 
 ---
 

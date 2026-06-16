@@ -11,6 +11,7 @@ Event hooks that run automatically during Claude Code operations.
 | **DotnetVersionChecker** | SessionStart | Verifies .NET SDK 10.0.300+ is installed (required by all hooks, which are C# file-based apps). Emits a high-visibility red warning with the install/update URL if missing or too old. Caches per day to avoid spam. |
 | **LanguagePreferenceLoader** | SessionStart | Reads `.claude/wpf-net472-airgap-dev-pack.local.md` at session start; if a `language:` field is present, emits a directive into the system context so Claude responds in that language for the rest of the session. |
 | **WpfAuthoringRulesLoader** | SessionStart | Injects an always-on, enforced rule set for authoring WPF ControlTemplates / Styles / animations (required `PART_` names per stock control, animation safety, Setter-on-Freezable → MC4111, `StaticResource` forward-reference, the `(UIElement.Children)[n]` path trap, runtime verification). Plugin `.claude/rules` are not auto-loaded for installed users, so these ship as a hook. Full detail in the `animating-wpf-controltemplates` MCP topic. |
+| **Net472GuardrailsLoader** | SessionStart | Injects the always-on hard guardrails: preserve the existing .NET Framework 4.7.2–4.8 target / project format / C# version (no modernization), offline-only operation, and dependency-free hand-rolled `BindableBase`/`RelayCommand` MVVM (no CommunityToolkit, no framework auto-detection). Ships as a hook because `.claude/CLAUDE.md` and `.claude/rules` are not auto-loaded for installed users. |
 | **RepoPathGuard** | PreToolUse (WpfDevPackMcp) | Blocks `WpfDevPackMcp` tool calls when the knowledge repo path is unconfigured, instructing the user to run `/wpf-net472-airgap-dev-pack:set-repo-path`. |
 | **XamlValidator** | PostToolUse (Edit/Write `*.xaml`) | Validates XAML syntax after edits. |
 | **MvvmViolationDetector** | PostToolUse (Edit/Write `*.cs`) | Flags MVVM layer violations (e.g. `System.Windows` UI types in a ViewModel) after C# edits. |
@@ -26,6 +27,7 @@ Event hooks that run automatically during Claude Code operations.
 | `DotnetVersionChecker.cs` | .NET SDK 10.0.300+ presence/version check (SessionStart) |
 | `LanguagePreferenceLoader.cs` | Per-project language preference loader (SessionStart) |
 | `WpfAuthoringRulesLoader.cs` | Injects enforced WPF ControlTemplate/Style/animation authoring rules (SessionStart) |
+| `Net472GuardrailsLoader.cs` | Injects net472/net48 + offline + hand-rolled-MVVM hard guardrails (SessionStart) |
 | `RepoPathGuard.cs` | Blocks `WpfDevPackMcp` calls until the knowledge repo path is set (PreToolUse) |
 | `XamlValidator.cs` | XAML syntax validation |
 | `MvvmViolationDetector.cs` | MVVM violation detection in C# edits |

@@ -11,6 +11,7 @@ Claude Code 작업 중 자동으로 실행되는 이벤트 훅입니다.
 | **DotnetVersionChecker** | SessionStart | 모든 훅이 C# file-based app으로 작동하기 때문에 필수인 .NET SDK 10.0.300 이상 설치 여부를 검증. 누락/미달 시 설치·업데이트 URL과 함께 빨간색 경고 출력. 하루 1회 캐싱. |
 | **LanguagePreferenceLoader** | SessionStart | 세션 시작 시 `.claude/wpf-net472-airgap-dev-pack.local.md`를 읽어 `language:` 필드가 있으면 시스템 컨텍스트에 응답 언어 지시문을 주입. 해당 세션 동안 Claude가 그 언어로 응답하도록 유도. |
 | **WpfAuthoringRulesLoader** | SessionStart | WPF ControlTemplate / Style / 애니메이션 작성에 항상 적용되는 강제 규칙(스톡 컨트롤별 필수 `PART_` 이름, 애니메이션 안전 규칙, Setter의 Freezable 대상 → MC4111, `StaticResource` 전방 참조, `(UIElement.Children)[n]` 경로 함정, 런타임 검증)을 세션 컨텍스트에 주입. 플러그인 `.claude/rules`는 설치 사용자에게 자동 로드되지 않으므로 훅으로 제공. 상세는 `animating-wpf-controltemplates` MCP 토픽. |
+| **Net472GuardrailsLoader** | SessionStart | 항상 적용되는 핵심 가드레일 주입: 기존 .NET Framework 4.7.2–4.8 타깃/프로젝트 포맷/C# 버전 보존(현대화 금지), 오프라인 전용 동작, 의존성 없는 직접 구현 `BindableBase`/`RelayCommand` MVVM(CommunityToolkit·프레임워크 감지 없음). 설치 사용자에겐 `.claude/CLAUDE.md`·`.claude/rules`가 자동 로드되지 않으므로 훅으로 제공. |
 | **RepoPathGuard** | PreToolUse (WpfDevPackMcp) | 지식 레포 경로가 미설정이면 `WpfDevPackMcp` 도구 호출을 차단하고 `/wpf-net472-airgap-dev-pack:set-repo-path` 실행을 안내. |
 | **XamlValidator** | PostToolUse (Edit/Write `*.xaml`) | 편집 후 XAML 구문 유효성 검사. |
 | **MvvmViolationDetector** | PostToolUse (Edit/Write `*.cs`) | C# 편집 후 MVVM 계층 위반(예: ViewModel의 `System.Windows` UI 타입) 감지. |
@@ -26,6 +27,7 @@ Claude Code 작업 중 자동으로 실행되는 이벤트 훅입니다.
 | `DotnetVersionChecker.cs` | .NET SDK 10.0.300 이상 설치/버전 검증 (SessionStart) |
 | `LanguagePreferenceLoader.cs` | 프로젝트별 응답 언어 환경설정 로더 (SessionStart) |
 | `WpfAuthoringRulesLoader.cs` | WPF ControlTemplate/Style/애니메이션 작성 강제 규칙 주입 (SessionStart) |
+| `Net472GuardrailsLoader.cs` | net472/net48 + 오프라인 + 직접 구현 MVVM 핵심 가드레일 주입 (SessionStart) |
 | `RepoPathGuard.cs` | 지식 레포 경로 설정 전까지 `WpfDevPackMcp` 호출 차단 (PreToolUse) |
 | `XamlValidator.cs` | XAML 구문 유효성 검사 |
 | `MvvmViolationDetector.cs` | C# 편집의 MVVM 위반 감지 |
