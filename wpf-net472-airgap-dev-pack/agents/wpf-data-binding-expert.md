@@ -179,7 +179,7 @@ public sealed class DebugConverter : IValueConverter
 
 ## Related Skills
 
-- `implementing-communitytoolkit-mvvm` - MVVM 기본
-- `rules/view-viewmodel-wiring-communitytoolkit.md` - DataTemplate 매핑 (CommunityToolkit.Mvvm)
+- `implementing-handrolled-mvvm` - 직접 구현 MVVM 기본 (BindableBase/RelayCommand)
+- `rules/view-viewmodel-wiring-handrolled.md` - 직접 구현 MVVM 와이어링 (code-behind DataContext 또는 DataTemplate)
 - `rules/view-viewmodel-wiring-prism.md` - View-ViewModel 매핑 (Prism 9)
 - `managing-wpf-collectionview-mvvm` - CollectionView 바인딩

@@ -449,7 +449,7 @@ AskUserQuestion:
 | Selection | Additional Skills |
 |-----------|------------------|
 | XAML / ControlTemplate | `designing-wpf-customcontrol-architecture` |
-| ViewModel / Data Binding | `rules/view-viewmodel-wiring-communitytoolkit.md` (CommunityToolkit.Mvvm), `rules/view-viewmodel-wiring-prism.md` (Prism 9) |
+| ViewModel / Data Binding | `rules/view-viewmodel-wiring-handrolled.md` (직접 구현 MVVM, 기본), `rules/view-viewmodel-wiring-prism.md` (Prism 9, opt-in) |
 | CustomControl / DependencyProperty | ~~`defining-wpf-dependencyproperty`~~ (archived), `authoring-wpf-controls` |
 | Rendering / DrawingContext | `rendering-with-drawingcontext`, `rendering-with-drawingvisual` |
 | Threading / Dispatcher | `threading-wpf-dispatcher`, ~~`handling-async-operations`~~ (archived) |

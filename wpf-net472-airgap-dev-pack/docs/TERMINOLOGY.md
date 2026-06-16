@@ -84,7 +84,7 @@ Concrete mechanism: implicit DataTemplate mapping via `Mappings.xaml`.
 CurrentViewModel = new HomeViewModel();  // the ViewModel instance is the lookup key
 ```
 
-Details: [`view-viewmodel-wiring-communitytoolkit.md`](../.claude/rules/view-viewmodel-wiring-communitytoolkit.md)
+Details: [`view-viewmodel-wiring-handrolled.md`](../.claude/rules/view-viewmodel-wiring-handrolled.md)
 
 ### 2.2 Prism 9 path (alternative)
 
