@@ -207,14 +207,16 @@ See `agents/wpf-architect.md` for full interview specification.
 ## Trigger Behavior
 
 **On Trigger:**
-1. Announce: "WPF Dev Pack: Activating `skill-name` skill."
-2. Check `.claude/rules/dotnet/wpf/mvvm-framework.md` for active MVVM framework
+1. Announce: "wpf-net472-airgap-dev-pack: Activating `skill-name` skill."
+2. Default MVVM is dependency-free hand-rolled `BindableBase`/`RelayCommand`
+   (`rules/mvvm-constraints.md`). Follow a framework path only if the project
+   already uses one and the user is keeping it.
 3. Load content:
    - **Knowledge topics** → call `WpfDevPackMcp get_wpf_topic(id[, variant])` to fetch from MCP
    - **Command skills** → invoked via slash command (`/wpf-net472-airgap-dev-pack:<skill-name>`)
-   - **CommunityToolkit.Mvvm command skills** → SKILL.md
-   - **Prism 9 command skills** → PRISM.md if present, otherwise SKILL.md
-4. Generate/modify code per guidelines and active framework rules
+   - **Default (hand-rolled) skills** → SKILL.md
+   - **Prism (opt-in, only for projects already on Prism)** → PRISM.md if present, otherwise SKILL.md
+4. Generate/modify code per guidelines and the project's existing conventions
 
 **Silent application** (no announcement):
 - `formatting-wpf-csharp-code` — applied automatically by the `CodeFormatter` PostToolUse hook on `.cs` / `.xaml` edits.

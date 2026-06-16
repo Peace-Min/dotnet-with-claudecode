@@ -1,132 +1,67 @@
 # Prohibitions
 
-Items explicitly banned from wpf-net472-airgap-dev-pack.
-Do NOT introduce any of these during code generation, review, or refactoring.
-
-For terminology used below (View First / ViewModel First Composition,
-Stateful / Stateless ViewModel), see [`docs/TERMINOLOGY.md`](../../docs/TERMINOLOGY.md).
-
-Adopted combinations (per chosen MVVM framework):
-- **CommunityToolkit.Mvvm path** — ViewModel First Composition + Stateful ViewModel
-  (Mappings.xaml + implicit DataTemplate)
-- **Prism 9 path** — View First Composition + Stateful ViewModel
-  (`RegisterForNavigation` + `IRegionManager.RequestNavigate`)
+The few hard "do not" rules for this net472 air-gapped fork. Unlike upstream,
+this fork does **not** enforce a single opinionated MVVM composition path — it
+is pragmatic so generated code fits any existing net472/net48 app (see "Allowed
+wiring" below).
 
 ---
 
-## P-001: Mixing alternate composition mechanisms in the same project
+## P-001: No CommunityToolkit.Mvvm
 
-### P-001-a: Prism `ViewModelLocator.AutoWireViewModel` is prohibited
+Do not introduce or use CommunityToolkit.Mvvm in any form — `ObservableObject` /
+`ObservableRecipient` base classes, `[ObservableProperty]`, `[RelayCommand]`,
+`[NotifyCanExecuteChangedFor]`, the `CommunityToolkit.Mvvm.*` namespaces, or its
+source generators. Use the hand-rolled `BindableBase` / `RelayCommand`
+(`rules/mvvm-constraints.md`).
 
-**Prohibited:**
-```xml
-<Window prism:ViewModelLocator.AutoWireViewModel="True" />
-```
+## P-002: No WPF UI types in ViewModels (except `ICommand`)
 
-**Classification:** View First Composition (an *alternate* mechanism inside Prism)
+Do not reference `System.Windows.*` UI types (`Visibility`, `Brush`,
+`ImageSource`, `Thickness`, `Window`, `MessageBox`, …) from ViewModel code.
+**Allowed exception:** `System.Windows.Input.ICommand` (for `RelayCommand`).
+Convert UI types in the View layer (converters / triggers).
 
-**Reason:** The Prism path's single matching mechanism is
-`RegisterForNavigation` + `IRegionManager.RequestNavigate`. `ViewModelLocator`
-locates and attaches the ViewModel by naming convention after the View is
-instantiated; using both mechanisms in the same Prism project produces two
-parallel matching paths, increasing maintenance and cognitive cost.
+## P-003: No framework auto-introduction or auto-detection
 
-### P-001-b: `DataContext = new XxxViewModel()` in View code-behind is prohibited
+Do not add CommunityToolkit.Mvvm, Prism, DevExpress, Generic Host, or any
+DI/MVVM framework to a project that does not already use it, and do not run
+framework-detection ("is this DevExpress / CTK / Prism?") logic. Always emit the
+dependency-free hand-rolled form; only follow a project's existing framework when
+it already uses one and the user is keeping it.
 
-**Prohibited:**
-```csharp
-public XxxView()
-{
-    InitializeComponent();
-    DataContext = new XxxViewModel();   // Prohibited
-}
-```
+## P-004: No framework / project modernization
 
-**Classification:** View First Composition (imperative variant)
+Do not raise the target framework, retarget to .NET (Core), convert the project
+format (non-SDK ⇄ SDK), migrate `packages.config` ⇄ `PackageReference`, or bump
+the C# `LangVersion` unless the user explicitly asks. See `## Target Framework`
+in `.claude/CLAUDE.md`.
 
-**Reason:** In the CommunityToolkit.Mvvm path the single matching mechanism
-is `Mappings.xaml` + implicit DataTemplate (ViewModel First). A View directly
-choosing its own VM breaks that single-path policy. In the Prism path the
-single mechanism is `RegisterForNavigation`; manual `DataContext` assignment
-likewise breaks single-path.
+## P-005: No implicit network access
 
-### P-001-c: Inline XAML `DataContext` declaration is prohibited
-
-**Prohibited:**
-```xml
-<UserControl.DataContext>
-    <vm:XxxViewModel />   <!-- Prohibited -->
-</UserControl.DataContext>
-```
-
-**Classification:** View First Composition (declarative variant)
-
-**Reason:** Same as P-001-b. Declarative specification of the VM type by the
-View is still the View choosing its own VM.
-
-### P-001-d: Introducing any other matching mechanism is prohibited
-
-**Prohibited:** Adding any View-VM matching mechanism beyond the one selected
-for the chosen framework (e.g., naming-convention auto-matching, custom
-locators, reflection-based wiring).
-
-**Reason:** Guarantees a single matching path per project. Co-existence of
-multiple mechanisms increases maintenance cost and cognitive load.
+Offline only. Do not run `git pull`, marketplace updates, `uvx git+https://…`,
+or online NuGet restore/search as an implicit action. If information is missing,
+ask the user.
 
 ---
 
-## P-002: `System.Windows.*` UI types in ViewModel classes (except `ICommand`)
+## Allowed wiring (NOT prohibited)
 
-**Prohibited:** References to `System.Windows.*` UI types
-(`Visibility`, `Brush`, `ImageSource`, `Thickness`, `Window`, etc.) from
-inside ViewModel classes.
+This fork is pragmatic about View ↔ ViewModel wiring so generated code fits any
+existing net472 app. All of these are acceptable — **match what the project
+already uses**:
 
-**Allowed exception:** `System.Windows.Input.ICommand` (used by both
-`RelayCommand` and `DelegateCommand`).
+- **Code-behind** `DataContext = new XxxViewModel()` in the View constructor —
+  the simplest, most universal pattern; fine for small/standalone views and dialogs.
+- **DataTemplate mapping** (ViewModel-first): a `DataTemplate` with `DataType`
+  (no `x:Key`) so a ViewModel bound to `ContentControl.Content` renders its View.
+- **DI-resolved** ViewModels assigned to `DataContext` where the app already uses
+  a container.
 
-**Reason:** Guarantees ViewModel testability and isolates the WPF framework
-dependency. Complies with the "view model is unaware of the view" principle
-from Microsoft's MVVM guidance. UI-type conversion belongs in the View layer
-(converters, triggers, value converters).
+Prefer **one** wiring style within a single project for consistency, but do not
+rewrite a project's existing, working wiring to a different style without being
+asked.
 
----
-
-## P-003: Stateless ViewModel + transient IoC registration pattern
-
-**Prohibited:** Registering all ViewModels as transient lifetime in the IoC
-container and delegating ViewModel state to an external Service/Manager.
-
-**Classification:** Stateless ViewModel composition style
-(common in Stylet, Caliburn.Micro recommended patterns)
-
-**Reason:** wpf-net472-airgap-dev-pack adopts **Stateful ViewModel** as the standard state
-management style across both framework paths. Stateless-VM patterns belong to
-separate MVVM framework ecosystems and are outside this plugin's scope.
-
----
-
-## P-004: Mixing the two adopted paths in a single project
-
-**Prohibited:** Within a single project, using both `Mappings.xaml`
-(CommunityToolkit path) and `RegisterForNavigation` + `IRegionManager`
-(Prism path) for View-VM wiring.
-
-**Reason:** Each project picks one MVVM framework. The chosen framework
-selects exactly one matching mechanism. Mixing the two produces ambiguous
-View resolution and defeats the single-matching-path guarantee.
-
----
-
-## Quick reference
-
-| Pattern | Classification | Policy |
-|---|---|---|
-| `Mappings.xaml` implicit DataTemplate | ViewModel First (Stateful) | ✅ Adopted (CommunityToolkit path) |
-| Prism `RegisterForNavigation` + `RequestNavigate("View")` | View First (Stateful) | ✅ Adopted (Prism path) |
-| Prism `ViewModelLocator.AutoWireViewModel` | View First (Stateful) | ❌ Prohibited (P-001-a) |
-| code-behind `DataContext = new VM()` | View First (imperative) | ❌ Prohibited (P-001-b) |
-| Inline XAML `<UserControl.DataContext>` | View First (declarative) | ❌ Prohibited (P-001-c) |
-| Naming-convention / reflection-based wiring | (any) | ❌ Prohibited (P-001-d) |
-| `System.Windows.*` in ViewModel (except `ICommand`) | — | ❌ Prohibited (P-002) |
-| Stateless VM + transient IoC | Stateless VM | ❌ Prohibited (P-003) |
-| Mixing `Mappings.xaml` and Prism `RegionManager` | — | ❌ Prohibited (P-004) |
+> Prism's `RegisterForNavigation` / `RegionManager` remains an opt-in alternative
+> for projects already on Prism — see `rules/view-viewmodel-wiring-prism.md`. It
+> is never the default and is never auto-introduced.

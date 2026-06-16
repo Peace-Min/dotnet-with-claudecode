@@ -61,11 +61,11 @@ var violations = DetectViolations(content);
 if (violations.Count > 0)
 {
     var fileName = Path.GetFileName(filePath);
-    Console.WriteLine($"[WPF Dev Pack] MVVM Violation Warning in {fileName}:");
+    Console.WriteLine($"[wpf-net472-airgap-dev-pack] MVVM Violation Warning in {fileName}:");
     foreach (var violation in violations)
         Console.WriteLine($"  - {violation}");
-    Console.WriteLine("  Tip: ViewModel should only reference BCL types and MVVM framework packages.");
-    Console.WriteLine("  See the `implementing-communitytoolkit-mvvm` knowledge topic (WpfDevPackMcp get_wpf_topic) for MVVM best practices.");
+    Console.WriteLine("  Tip: ViewModels reference only BCL/domain types + the hand-rolled BindableBase/RelayCommand (System.Windows.Input.ICommand is the only allowed WPF type).");
+    Console.WriteLine("  This fork prohibits CommunityToolkit.Mvvm. See the `implementing-handrolled-mvvm` knowledge topic (WpfDevPackMcp get_wpf_topic).");
 }
 
 static bool IsViewModelFile(string filePath)
@@ -114,16 +114,20 @@ static List<string> DetectViolations(string content)
     var violations = new List<string>();
 
     // Check for WPF namespace references
-    if (SystemWindowsUsing().IsMatch(content))
+    if (ViolationPatterns.SystemWindowsUsing().IsMatch(content))
         violations.Add("'using System.Windows.*' detected — ViewModel must not reference WPF namespaces");
 
     // Check for PresentationFramework types
-    if (PresentationFrameworkRef().IsMatch(content))
+    if (ViolationPatterns.PresentationFrameworkRef().IsMatch(content))
         violations.Add("PresentationFramework type reference detected (Visibility, Brush, etc.)");
 
     // Check for WPF-specific types commonly misused in ViewModels
-    if (WpfTypeUsage().IsMatch(content))
+    if (ViolationPatterns.WpfTypeUsage().IsMatch(content))
         violations.Add("WPF-specific type used (ICollectionView, CollectionViewSource, Dispatcher, etc.)");
+
+    // Check for CommunityToolkit.Mvvm usage (prohibited in this fork — P-001)
+    if (ViolationPatterns.CommunityToolkitUsage().IsMatch(content))
+        violations.Add("CommunityToolkit.Mvvm detected — this fork uses hand-rolled BindableBase/RelayCommand only (no CTK, no source generators)");
 
     return violations;
 }
@@ -142,8 +146,8 @@ internal static partial class ViolationPatterns
     // Detects WPF types that should not be in ViewModels
     [GeneratedRegex(@"\b(ICollectionView\b|CollectionViewSource\b|Dispatcher\b(?!Priority)|DispatcherObject\b|DependencyObject\b|DependencyProperty\b|FrameworkElement\b|UIElement\b)")]
     internal static partial Regex WpfTypeUsage();
-}
 
-static Regex SystemWindowsUsing() => ViolationPatterns.SystemWindowsUsing();
-static Regex PresentationFrameworkRef() => ViolationPatterns.PresentationFrameworkRef();
-static Regex WpfTypeUsage() => ViolationPatterns.WpfTypeUsage();
+    // Detects CommunityToolkit.Mvvm usage (prohibited): namespaces, base classes, source-gen attributes
+    [GeneratedRegex(@"(CommunityToolkit\.Mvvm|:\s*Observable(Object|Recipient)\b|\[\s*ObservableProperty\b|\[\s*RelayCommand\b|\[\s*NotifyCanExecuteChangedFor\b|\[\s*NotifyPropertyChangedFor\b)")]
+    internal static partial Regex CommunityToolkitUsage();
+}
