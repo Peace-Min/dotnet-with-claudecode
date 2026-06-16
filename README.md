@@ -10,36 +10,36 @@ This repository provides skills, rules, and agent configurations for .NET/WPF de
 
 ## Contents
 
-### [wpf-dev-pack](./wpf-dev-pack)
+### [wpf-net472-airgap-dev-pack](./wpf-net472-airgap-dev-pack)
 
 Claude Code plugin for WPF development.
 
 ## Requirements
 
 - Claude Code CLI
-- .NET SDK 10.0.300+ (for wpf-dev-pack hooks)
-- Required Claude Code plugins for wpf-dev-pack:
+- .NET SDK 10.0.300+ (for wpf-net472-airgap-dev-pack hooks)
+- Required Claude Code plugins for wpf-net472-airgap-dev-pack:
   - [context7](https://github.com/upstash/context7)
   - [microsoft-docs](https://github.com/MicrosoftDocs/mcp)
   - [csharp-lsp](https://github.com/razzmatazz/csharp-language-server)
-- Required MCPs for wpf-dev-pack:
+- Required MCPs for wpf-net472-airgap-dev-pack:
   - [serena](https://github.com/oraios/serena) — install **directly as an MCP server via `uv`, not as a Claude Code plugin**. Claude Code's built-in tool descriptions strongly bias the model away from using Serena's tools when Serena is registered via the plugin path; see the [Attention note in the Serena Claude Code docs](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code) for the rationale, and follow the [Quick Start](https://github.com/oraios/serena#quick-start) for installation.
 
 ## Installation
 
-### Installing wpf-dev-pack
+### Installing wpf-net472-airgap-dev-pack
 
 ```bash
 # Step 1: Add the marketplace (one-time)
-/plugin marketplace add christian289/dotnet-with-claudecode
+/plugin marketplace add Peace-Min/dotnet-with-claudecode
 
 # Step 2: Install the plugin
-/plugin install wpf-dev-pack@dotnet-claude-plugins
+/plugin install wpf-net472-airgap-dev-pack@dotnet-net472-airgap-plugins
 ```
 
 ## Git Hooks Setup
 
-This repository includes shared git hooks for automated version bumping of `wpf-dev-pack`.
+This repository includes shared git hooks for automated version bumping of `wpf-net472-airgap-dev-pack`.
 
 ### Installing Git Hooks
 
@@ -61,7 +61,7 @@ git config core.hooksPath .githooks
 
 ### What the Hook Does
 
-- **pre-push**: Automatically bumps `wpf-dev-pack` patch version when pushing changes to `wpf-dev-pack/` directory (excluding `plugin.json` and `README.md`)
+- **pre-push**: Automatically bumps `wpf-net472-airgap-dev-pack` patch version when pushing changes to `wpf-net472-airgap-dev-pack/` directory (excluding `plugin.json` and `README.md`)
 
 ## Contributing
 

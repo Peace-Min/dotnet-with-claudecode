@@ -1,0 +1,25 @@
+{
+  "name": "wpf-net472-airgap-dev-pack",
+  "description": "Offline / air-gapped WPF development toolkit for Claude Code, specialized for existing .NET Framework 4.7.2-4.8 (net472/net48) WPF solutions. Local-only MCP knowledge server (no online MCP dependencies), legacy project detection/preservation (non-SDK csproj, packages.config, app.config), and dependency-free MVVM (hand-rolled BindableBase/RelayCommand with DevExpress.Mvvm detection; no CommunityToolkit.Mvvm). Fork of wpf-dev-pack by vincent lee (christian289).",
+  "version": "1.0.0",
+  "author": {
+    "name": "Peace-Min"
+  },
+  "repository": "https://github.com/Peace-Min/dotnet-with-claudecode",
+  "homepage": "https://github.com/Peace-Min/dotnet-with-claudecode/tree/main/wpf-net472-airgap-dev-pack",
+  "license": "MIT",
+  "keywords": [
+    "wpf",
+    "dotnet",
+    "dotnet-framework",
+    "net472",
+    "net48",
+    "csharp",
+    "xaml",
+    "mvvm",
+    "customcontrol",
+    "airgap",
+    "offline",
+    "devexpress"
+  ]
+}

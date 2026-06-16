@@ -10,36 +10,36 @@ Claude Code를 활용한 .NET 개발 튜토리얼
 
 ## 콘텐츠
 
-### [wpf-dev-pack](./wpf-dev-pack)
+### [wpf-net472-airgap-dev-pack](./wpf-net472-airgap-dev-pack)
 
 WPF 개발을 위한 Claude Code 플러그인.
 
 ## 요구사항
 
 - Claude Code CLI
-- .NET SDK 10.0.300 이상 (wpf-dev-pack 훅 실행용)
-- wpf-dev-pack 필수 Claude Code 플러그인:
+- .NET SDK 10.0.300 이상 (wpf-net472-airgap-dev-pack 훅 실행용)
+- wpf-net472-airgap-dev-pack 필수 Claude Code 플러그인:
   - [context7](https://github.com/upstash/context7)
   - [microsoft-docs](https://github.com/MicrosoftDocs/mcp)
   - [csharp-lsp](https://github.com/razzmatazz/csharp-language-server)
-- wpf-dev-pack 필수 MCP:
+- wpf-net472-airgap-dev-pack 필수 MCP:
   - [serena](https://github.com/oraios/serena) — **Claude Code 플러그인이 아니라 `uv`를 통해 MCP 서버로 직접 설치**해야 합니다. Serena를 플러그인 경로로 등록하면 Claude Code 내장 도구 description이 ~16k 토큰을 차지하면서 모델이 Serena 도구를 사용하지 않는 강한 편향이 생깁니다. 자세한 이유는 [Serena Claude Code 문서의 Attention 안내](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code)를 참고하고, 설치는 [Quick Start](https://github.com/oraios/serena#quick-start)를 따르세요.
 
 ## 설치
 
-### wpf-dev-pack 설치
+### wpf-net472-airgap-dev-pack 설치
 
 ```bash
 # 1단계: 마켓플레이스 추가 (최초 1회)
-/plugin marketplace add christian289/dotnet-with-claudecode
+/plugin marketplace add Peace-Min/dotnet-with-claudecode
 
 # 2단계: 플러그인 설치
-/plugin install wpf-dev-pack@dotnet-claude-plugins
+/plugin install wpf-net472-airgap-dev-pack@dotnet-net472-airgap-plugins
 ```
 
 ## Git Hooks 설정
 
-이 저장소에는 `wpf-dev-pack`의 자동 버전 업데이트를 위한 공유 git hooks가 포함되어 있습니다.
+이 저장소에는 `wpf-net472-airgap-dev-pack`의 자동 버전 업데이트를 위한 공유 git hooks가 포함되어 있습니다.
 
 ### Git Hooks 설치
 
@@ -58,7 +58,7 @@ git config core.hooksPath .githooks
 
 ### Hook 동작
 
-- **pre-push**: `wpf-dev-pack/` 디렉토리 변경사항 푸시 시 자동으로 패치 버전 업데이트 (`plugin.json`과 `README.md` 제외)
+- **pre-push**: `wpf-net472-airgap-dev-pack/` 디렉토리 변경사항 푸시 시 자동으로 패치 버전 업데이트 (`plugin.json`과 `README.md` 제외)
 
 ## 기여
 
