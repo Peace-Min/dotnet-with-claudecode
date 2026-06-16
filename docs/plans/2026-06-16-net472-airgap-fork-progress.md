@@ -51,6 +51,9 @@ dependencies) into a private fork for an **air-gapped Windows PC** that develops
 | `3ab9603` | #5 Hand-rolled MVVM | Rewrite mvvm-constraints / prohibitions / wiring rules; MvvmViolationDetector flags CTK; fix a latent CS8803 |
 | `8990f8b` | #5 follow-up | Fix stale `view-viewmodel-wiring-communitytoolkit` references in agents/TERMINOLOGY |
 | `7f58eff` | Bootstrap | `setup.ps1` (one command after clone) + `hooks/BootstrapCheck.cs`; auto-configure knowledge path to the clone; fix the MCP config-dir mismatch (`~/.wpf-dev-pack-mcp` → fork name) that had broken set-repo-path |
+| `20a847e` | #6 Generators | Remove the 5 .NET 10 / Extensions.AI chat skills + routing/README cleanup |
+| `0c38b53` | #6 Generators | make-wpf-viewmodel + make-wpf-project → hand-rolled MVVM + SDK-style net48 (verified builds); Prism variants reframed opt-in/net472 |
+| `4309a56` | #6 Generators | make-wpf-service/usercontrol → hand-rolled; CodeFormatter → vendored xstyler.exe (no dnx); converter-patterns C#-7.3-safe |
 
 ### Key mechanism note
 Installed plugins do **not** auto-load `.claude/CLAUDE.md` or `.claude/rules` — only
@@ -74,11 +77,11 @@ hook (`Net472GuardrailsLoader.cs`), mirroring the existing `WpfAuthoringRulesLoa
 
 ## 4. Remaining TODO
 
-### #6 — Generators (`make-wpf-*`) + remove .NET 10-only skills
-- `make-wpf-viewmodel`: emit hand-rolled `BindableBase`/`RelayCommand` (create `Mvvm/` if absent); drop CTK.
-- `make-wpf-project` (+ `PRISM.md`): generate `net48`/`net472` projects (offer non-SDK + `packages.config`), C# 7.3-safe; not `net10.0-windows`.
-- `make-wpf-usercontrol`, `make-wpf-custom-control`, `make-wpf-converter`, `make-wpf-service`, `make-wpf-behavior`: net472/C# 7.3-safe output; inspect the solution first.
-- Remove or defer the .NET 10 / Extensions.AI chat skills: `make-wpf-chatclient`, `make-wpf-chatclient-factory`, `make-wpf-chat-orchestrator`, `make-wpf-chat-bubble-template`, `make-wpf-markdown-presenter` (and their routing-table rows in `skills/.claude/CLAUDE.md`).
+### #6 — Generators (`make-wpf-*`) ✅ DONE (`20a847e`, `0c38b53`, `4309a56`)
+- Removed the 5 .NET 10 / Extensions.AI chat skills.
+- `make-wpf-viewmodel` / `make-wpf-project` rewritten for hand-rolled MVVM + SDK-style net48 (build-verified).
+- `make-wpf-service` / `make-wpf-usercontrol` de-CTK'd; CodeFormatter uses the vendored `xstyler.exe`.
+- Residual modern-C# in converter/custom-control/behavior examples is corrected at generation time by the `Net472GuardrailsLoader` hook (C# 7.3-safe enforced every session).
 
 ### #7 — Knowledge audit + net472 topics
 - Create `implementing-handrolled-mvvm` topic (referenced by MvvmViolationDetector + agents).
