@@ -8,7 +8,7 @@ public sealed class RepoNotConfiguredException()
     : Exception(
         "WPF knowledge repo path is not configured. This requires a one-time USER setup — " +
         "do NOT auto-detect the repo or run set-repo-path yourself; ask the user to run " +
-        "/wpf-dev-pack:set-repo-path <path>.");
+        "/wpf-net472-airgap-dev-pack:set-repo-path <path>.");
 
 /// <summary>
 /// Facade the MCP tools depend on: resolves the repo, refreshes (TTL/forced),
@@ -18,6 +18,7 @@ public sealed class RepoNotConfiguredException()
 public sealed class KnowledgeService(ConfigStore store, GitRunner git, ILogger<KnowledgeService> logger)
 {
     private static readonly TimeSpan Ttl = ReadTtl();
+    private static readonly bool Offline = ReadOffline();
     private readonly Lock _gate = new();
     private TopicCatalog? _catalog;
     private string? _catalogRoot;
@@ -25,8 +26,16 @@ public sealed class KnowledgeService(ConfigStore store, GitRunner git, ILogger<K
     public void EnsureReady(bool force = false)
     {
         var repo = store.Resolve() ?? throw new RepoNotConfiguredException();
-        var state = RepoRefresher.EnsureFresh(repo, store.LoadState(), Ttl, force, git, store, logger);
-        _ = state;
+
+        // Air-gapped fork: serve the local clone as-is. No clone/fetch/pull is
+        // performed unless network refresh is explicitly opted in via
+        // WPFDEVPACK_OFFLINE=0. This guarantees the server never touches the
+        // network during normal closed-network operation.
+        if (!Offline)
+        {
+            var state = RepoRefresher.EnsureFresh(repo, store.LoadState(), Ttl, force, git, store, logger);
+            _ = state;
+        }
 
         lock (_gate)
         {
@@ -57,5 +66,15 @@ public sealed class KnowledgeService(ConfigStore store, GitRunner git, ILogger<K
     {
         var raw = Environment.GetEnvironmentVariable("WPFDEVPACK_PULL_TTL_MINUTES");
         return int.TryParse(raw, out var m) && m >= 0 ? TimeSpan.FromMinutes(m) : TimeSpan.FromMinutes(60);
+    }
+
+    // Offline by default (air-gapped fork). Only an explicit opt-out re-enables
+    // network refresh: WPFDEVPACK_OFFLINE=0 (also accepts "false"/"no").
+    private static bool ReadOffline()
+    {
+        var raw = Environment.GetEnvironmentVariable("WPFDEVPACK_OFFLINE");
+        if (string.IsNullOrWhiteSpace(raw))
+            return true;
+        return raw.Trim() is not ("0" or "false" or "False" or "FALSE" or "no" or "No");
     }
 }

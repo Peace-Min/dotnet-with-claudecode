@@ -18,7 +18,7 @@ public sealed class WpfTopicTools(KnowledgeService knowledge)
     [McpServerTool(Name = "get_wpf_topic")]
     [Description("Returns the full markdown for one WPF knowledge topic. variant: 'default' (TOPIC.md), 'prism' (PRISM.md), or 'advanced' (ADVANCED.md).")]
     public string GetWpfTopic(
-        [Description("Topic id, e.g. 'implementing-communitytoolkit-mvvm' (a knowledge/ directory name).")] string id,
+        [Description("Topic id, e.g. 'implementing-wpf-validation' (a knowledge/ directory name).")] string id,
         [Description("Which variant to return: default | prism | advanced.")] string variant = "default")
     {
         knowledge.EnsureReady();
@@ -44,10 +44,10 @@ public sealed class WpfTopicTools(KnowledgeService knowledge)
     }
 
     [McpServerTool(Name = "refresh_wpf_knowledge")]
-    [Description("Forces an immediate git pull of the knowledge repo and rescans the catalog. Returns the topic count after refresh.")]
+    [Description("Rescans the local knowledge catalog from disk and returns the topic count. Offline by default: performs NO network/git operation. Only if network refresh is explicitly enabled (WPFDEVPACK_OFFLINE=0) does it also pull the repo.")]
     public string RefreshWpfKnowledge()
     {
         knowledge.EnsureReady(force: true);
-        return $"Refreshed. {knowledge.Catalog.List().Count} topics available.";
+        return $"Refreshed (local rescan). {knowledge.Catalog.List().Count} topics available.";
     }
 }

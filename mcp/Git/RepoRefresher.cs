@@ -5,7 +5,9 @@ namespace WpfDevPackMcp.Git;
 
 public static partial class RepoRefresher
 {
-    private const string RepoUrl = "https://github.com/christian289/dotnet-with-claudecode";
+    // Used only when network refresh is explicitly opted in (WPFDEVPACK_OFFLINE=0).
+    // The air-gapped fork defaults to offline, so this is never reached normally.
+    private const string RepoUrl = "https://github.com/Peace-Min/dotnet-with-claudecode";
 
     /// <summary>Pure decision: pull if forced, never pulled, or TTL elapsed.</summary>
     public static bool ShouldPull(DateTimeOffset? lastPull, DateTimeOffset now, TimeSpan ttl, bool force)

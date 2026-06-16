@@ -1,16 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "description": "MCP servers for WPF Dev Pack plugin",
+  "description": "Local (offline) MCP servers for the wpf-net472-airgap-dev-pack plugin. Executables are vendored under bin/ by tools/build-local-bin.ps1 — there is NO dnx / NuGet resolution at process start, so the servers keep starting after global NuGet/uv cache cleanup. Run tools/build-local-bin.ps1 once during bundle prep.",
   "mcpServers": {
-    "HandMirrorMcp": {
-      "type": "stdio",
-      "command": "dnx",
-      "args": ["HandMirrorMcp@0.1.1", "--yes"]
-    },
     "WpfDevPackMcp": {
       "type": "stdio",
-      "command": "dnx",
-      "args": ["WpfDevPackMcp@0.1.3", "--yes"]
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/WpfDevPackMcp/WpfDevPackMcp.exe",
+      "env": {
+        "WPFDEVPACK_OFFLINE": "1"
+      }
+    },
+    "HandMirrorMcp": {
+      "type": "stdio",
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/HandMirrorMcp/HandMirrorMcp.exe"
     }
   }
 }
