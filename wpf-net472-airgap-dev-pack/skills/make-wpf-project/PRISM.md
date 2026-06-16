@@ -1,5 +1,20 @@
 # Prism Framework Project Structure
 
+> ⚠️ **Opt-in, and NOT adapted for net472/net48.** The default for this fork is
+> dependency-free hand-rolled MVVM — use [SKILL.md](SKILL.md) for new net472/net48
+> projects. Do not scaffold a Prism project unless the user explicitly asks.
+>
+> The structure below is written against **modern .NET (net10) + Prism 9 + C# 10**
+> (file-scoped namespaces, global usings, nullable, `Prism 9.0.537`). **None of
+> that compiles on net472/net48.** If you must scaffold Prism for .NET Framework:
+> - Target `net48`/`net472` (SDK-style or legacy non-SDK), `LangVersion` 7.3.
+> - Use **Prism 7.2 or 8.1** (Prism 9 is .NET 8+ only; it does not support .NET Framework).
+> - Block-scoped namespaces; no global usings, nullable, records, or `ImplicitUsings`.
+> - Restore Prism from an approved local/internal NuGet feed only.
+>
+> Treat the rest of this file as a *modern-.NET reference for the Prism module/region
+> shape* — port the patterns to the net472 constraints above before generating code.
+
 Prism module-based architecture for large-scale WPF applications.
 
 ## Prism Structure (`--prism`)

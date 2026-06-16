@@ -1,80 +1,97 @@
 ---
-description: "Generates WPF ViewModel with View, DI registration, and DataTemplate mapping in one step. Use when creating a new screen, adding a View-ViewModel pair, or scaffolding ViewModel boilerplate with DI wiring. Usage: /wpf-net472-airgap-dev-pack:make-wpf-viewmodel <ViewModelName> [--with-view] [--no-mapping]"
+description: "Generates a WPF ViewModel (and optional View) using dependency-free hand-rolled MVVM (BindableBase + RelayCommand) for .NET Framework 4.7.2-4.8. Use when creating a new screen, adding a View-ViewModel pair, or scaffolding ViewModel boilerplate. Usage: /wpf-net472-airgap-dev-pack:make-wpf-viewmodel <ViewModelName> [--with-view] [--datatemplate]"
 argument-hint: [ViewModelName]
 ---
 
-# WPF ViewModel Generator
+# WPF ViewModel Generator (net472, hand-rolled MVVM)
 
-**If `$0` is empty, use the AskUserQuestion tool to ask: "Enter the ViewModel name (e.g., Dashboard, Settings)". Do NOT proceed until a valid name is provided. Use the response as the ViewModelName for all subsequent steps.**
+**If `$0` is empty, use the AskUserQuestion tool to ask: "Enter the ViewModel name (e.g., Dashboard, Settings)". Do NOT proceed until a valid name is provided.**
 
-Generate a `$0ViewModel` class with optional View, DI registration, and DataTemplate mapping.
-Follows the wpf-net472-airgap-dev-pack composition style: **ViewModel First Composition + Stateful ViewModel** when using CommunityToolkit.Mvvm (`Mappings.xaml` + implicit DataTemplate resolves the View from the ViewModel type), or **View First Composition + Stateful ViewModel** when using Prism 9 (`RegisterForNavigation` + `IRegionManager`). `ViewModelLocator`, code-behind `DataContext = new VM()`, and inline XAML `DataContext` are prohibited (see `prohibitions.md` and `docs/TERMINOLOGY.md`).
+Generate a `$0ViewModel` deriving from a hand-rolled `BindableBase`, with commands
+as hand-rolled `RelayCommand`. **No CommunityToolkit, no source generators, no
+framework detection.** Output must compile on **net472/net48 (C# 7.3)** — block-scoped
+namespaces only; no nullable reference types, records, init-only, target-typed `new`,
+or file-scoped namespaces. See `rules/mvvm-constraints.md`.
 
-- Replace `{Namespace}` with the project's root namespace detected from csproj or existing code.
-- Replace `{ViewModelNamespace}` with the ViewModel project's CLR namespace for XAML xmlns declaration.
+- Replace `{Namespace}` with the project's root namespace (detect from csproj / existing code).
+- If the project already uses its own base class (e.g. a Prism `BindableBase`), **follow that** instead of creating new ones.
 
 ## Usage
 
 ```bash
-# ViewModel + View + DI + DataTemplate mapping (full)
-/wpf-net472-airgap-dev-pack:make-wpf-viewmodel Dashboard --with-view
-
-# ViewModel + DI only (no View, no mapping)
+# ViewModel only
 /wpf-net472-airgap-dev-pack:make-wpf-viewmodel Settings
 
-# ViewModel + View without DataTemplate mapping
-/wpf-net472-airgap-dev-pack:make-wpf-viewmodel Report --with-view --no-mapping
+# ViewModel + View, wired via code-behind DataContext (simplest, universal)
+/wpf-net472-airgap-dev-pack:make-wpf-viewmodel Dashboard --with-view
+
+# ViewModel + View, wired via implicit DataTemplate (ViewModel-first content switching)
+/wpf-net472-airgap-dev-pack:make-wpf-viewmodel Report --with-view --datatemplate
 ```
 
 ---
 
 ## Execution Procedure
 
-### Step 1: Parse $0
+### Step 1: Parse `$0` and flags
 
-- `$0` is the ViewModel name (without `ViewModel` suffix — auto-appended)
-  - e.g., `Dashboard` → `DashboardViewModel.cs` + `DashboardView.xaml`
-- `--with-view` flag: Generate View XAML + code-behind
-- `--no-mapping` flag: Skip DataTemplate mapping registration
+- `$0` = ViewModel name without the `ViewModel` suffix (auto-appended): `Dashboard` → `DashboardViewModel`.
+- `--with-view` → also generate `$0View.xaml` + code-behind.
+- `--datatemplate` → wire the View via an implicit `DataTemplate` instead of code-behind `DataContext` (only meaningful with `--with-view`).
 
-### Step 2: Locate Target Projects
+### Step 2: Inspect the solution (preserve conventions)
 
-Search for solution file and identify projects by naming convention:
+- Detect the root namespace and the target framework (must stay `net472`/`net48`).
+- Detect the project's **effective `LangVersion`**; default to C# 7.3-safe output.
+- Detect an existing MVVM base class:
+  - If `BindableBase`/`RelayCommand` (or `DelegateCommand`) already exist in the project, **reuse them** — do not create duplicates.
+  - If the project is on Prism, follow `PRISM.md` instead.
+- Place the ViewModel in a `.ViewModels` project if present, else a `ViewModels/` folder.
 
-| Project Suffix | Purpose | Files Placed |
-|----------------|---------|--------------|
-| `.ViewModels` | ViewModel project | `$0ViewModel.cs` |
-| `.WpfApp` | WPF Application | `Views/$0View.xaml`, DI registration |
-| `.WpfServices` | WPF Services | (referenced for DI) |
+### Step 3: Ensure the hand-rolled base classes (create once if absent)
 
-**Fallback**: If no `.ViewModels` project exists, place ViewModel in `ViewModels/` folder of main WPF project.
+If the project has no `BindableBase`/`RelayCommand`, create them under `Mvvm/`
+(verbatim from `rules/mvvm-constraints.md`): `Mvvm/BindableBase.cs` and
+`Mvvm/RelayCommand.cs` (`RelayCommand` + `RelayCommand<T>`, CommandManager
+auto-requery). These compile on net472/C# 7.3.
 
-### Step 3: Generate ViewModel
+### Step 4: Generate the ViewModel
 
-Create `$0ViewModel.cs`:
+Create `$0ViewModel.cs` (block-scoped namespace, C# 7.3-safe):
 
 ```csharp
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using System.Windows.Input;
+using {Namespace}.Mvvm;
 
-namespace {Namespace}.ViewModels;
-
-public sealed partial class $0ViewModel : ObservableObject
+namespace {Namespace}.ViewModels
 {
-    [ObservableProperty] private string _title = "$0";
-
-    [RelayCommand]
-    private void Loaded()
+    public sealed class $0ViewModel : BindableBase
     {
-        // TODO: Initialize data
-        // TODO: 데이터 초기화
+        private string _title = "$0";
+        public string Title
+        {
+            get { return _title; }
+            set { SetProperty(ref _title, value); }
+        }
+
+        public ICommand LoadedCommand { get; }
+
+        public $0ViewModel()
+        {
+            LoadedCommand = new RelayCommand(OnLoaded);
+        }
+
+        private void OnLoaded()
+        {
+            // TODO: initialize data
+        }
     }
 }
 ```
 
-### Step 4: Generate View (if --with-view)
+### Step 5: Generate the View (if `--with-view`)
 
-Create `Views/$0View.xaml`:
+`Views/$0View.xaml`:
 
 ```xml
 <UserControl x:Class="{Namespace}.Views.$0View"
@@ -82,53 +99,42 @@ Create `Views/$0View.xaml`:
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="{ViewModelNamespace}"
+             xmlns:vm="clr-namespace:{Namespace}.ViewModels"
              mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance vm:$0ViewModel}"
+             d:DataContext="{d:DesignInstance Type=vm:$0ViewModel}"
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
-        <TextBlock Text="{Binding Title}"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="24" />
+        <TextBlock Text="{Binding Title}" HorizontalAlignment="Center"
+                   VerticalAlignment="Center" FontSize="24" />
     </Grid>
 </UserControl>
 ```
 
-Create `Views/$0View.xaml.cs`:
+### Step 6: Wire the View ↔ ViewModel
+
+**Default (no `--datatemplate`) — code-behind DataContext** (simplest, works anywhere):
+
+`Views/$0View.xaml.cs`:
 
 ```csharp
-namespace {Namespace}.Views;
+using {Namespace}.ViewModels;
 
-public partial class $0View
+namespace {Namespace}.Views
 {
-    public $0View()
+    public partial class $0View : System.Windows.Controls.UserControl
     {
-        InitializeComponent();
+        public $0View()
+        {
+            InitializeComponent();
+            DataContext = new $0ViewModel();
+        }
     }
 }
 ```
 
-### Step 5: Register in DI Container
-
-Locate `App.xaml.cs` and add registration inside `ConfigureServices`:
-
-```csharp
-// In ConfigureServices method
-services.AddSingleton<$0ViewModel>();
-```
-
-With `--with-view`, register **only** the ViewModel — the View is instantiated
-by the `Mappings.xaml` `DataTemplate` (ViewModel First), so it is NOT registered
-in DI (registering it would also force a `$0.Views` using in `App.xaml.cs`):
-
-```csharp
-services.AddSingleton<$0ViewModel>();
-```
-
-### Step 6: Add DataTemplate Mapping (unless --no-mapping)
-
-Locate `Mappings.xaml` (or `ViewModelMappings.xaml`) and add:
+**With `--datatemplate` — implicit DataTemplate** (ViewModel-first; host swaps a bound
+`ContentControl.Content`). Leave the code-behind without a `DataContext` assignment and
+add to `App.xaml` (or a merged dictionary):
 
 ```xml
 <DataTemplate DataType="{x:Type vm:$0ViewModel}">
@@ -136,45 +142,24 @@ Locate `Mappings.xaml` (or `ViewModelMappings.xaml`) and add:
 </DataTemplate>
 ```
 
-If `Mappings.xaml` does not exist, create it and merge into `App.xaml`:
+(Declare `xmlns:vm="clr-namespace:{Namespace}.ViewModels"` and
+`xmlns:views="clr-namespace:{Namespace}.Views"` on the resources owner.)
 
-```xml
-<Application.Resources>
-    <ResourceDictionary>
-        <ResourceDictionary.MergedDictionaries>
-            <ResourceDictionary Source="Mappings.xaml" />
-        </ResourceDictionary.MergedDictionaries>
-    </ResourceDictionary>
-</Application.Resources>
-```
+See `rules/view-viewmodel-wiring-handrolled.md` for both wiring styles. If the project
+already uses a DI container, resolve the ViewModel from it and assign to `DataContext`
+instead of `new`.
 
-### Step 7: Report Results
+### Step 7: Report
 
-Output list of generated/modified files and next steps guidance.
-
----
-
-## Generated File Structure
-
-```
-{ViewModelsProject}/
-└── $0ViewModel.cs
-
-{WpfAppProject}/
-├── Views/
-│   ├── $0View.xaml           (if --with-view)
-│   └── $0View.xaml.cs        (if --with-view)
-├── Mappings.xaml                  (modified or created)
-└── App.xaml.cs                    (DI registration added)
-```
+List generated/modified files (including any newly created `Mvvm/` base classes) and next steps.
 
 ---
 
 ## Error Handling
 
-- Missing ViewModel name → output usage instructions
-- No WPF project found → suggest `/wpf-net472-airgap-dev-pack:make-wpf-project` first
-- Duplicate ViewModel → warn and abort
-- Missing Mappings.xaml → create with App.xaml merge
+- Missing ViewModel name → ask via AskUserQuestion.
+- No WPF project found → suggest `/wpf-net472-airgap-dev-pack:make-wpf-project` first.
+- Duplicate ViewModel → warn and abort.
+- Project already has a base class → reuse it; do not create `Mvvm/` duplicates.
 
-> **Prism 9 사용자**: See [PRISM.md](PRISM.md) for Prism-specific generation patterns.
+> **Prism 9 projects (opt-in only):** see [PRISM.md](PRISM.md). Never convert a hand-rolled project to Prism without being asked.

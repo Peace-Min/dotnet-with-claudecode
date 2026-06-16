@@ -1,74 +1,75 @@
-# WPF ViewModel Generator — Prism 9
+# WPF ViewModel Generator — Prism (opt-in, net472)
 
-> `mvvm-framework.md`에서 Prism 9이 선택된 경우 이 파일을 참조합니다.
-> CommunityToolkit.Mvvm 버전은 [SKILL.md](SKILL.md)를 참조하세요.
+> **Opt-in only.** Use this ONLY for projects that already depend on Prism. The
+> default is dependency-free hand-rolled MVVM — see [SKILL.md](SKILL.md). Never
+> auto-introduce Prism or convert a hand-rolled project to it.
 
-## Differences from CommunityToolkit.Mvvm
+> **net472/net48 uses Prism 7.2 or 8.1**, not Prism 9 (Prism 9 targets .NET 8+
+> and does NOT support .NET Framework). The ViewModel/command/navigation API used
+> here is the same across Prism 7/8. Match the version the project already references.
 
-| Item | CommunityToolkit.Mvvm | Prism 9 |
-|------|----------------------|---------|
-| Base class | `ObservableObject` | `BindableBase` |
-| Property | `[ObservableProperty]` | `SetProperty()` |
-| Command | `[RelayCommand]` | `DelegateCommand` |
-| DI registration | `IServiceCollection` | `IContainerRegistry` |
-| View mapping | DataTemplate Mappings.xaml | `RegisterForNavigation` |
+## Differences from the default hand-rolled MVVM
+
+| Item | Hand-rolled (default) | Prism (opt-in) |
+|------|----------------------|----------------|
+| Base class | hand-rolled `BindableBase` | Prism `Prism.Mvvm.BindableBase` |
+| Property | `SetProperty()` (hand-rolled) | `SetProperty()` (Prism) |
+| Command | hand-rolled `RelayCommand` | `DelegateCommand` |
+| DI registration | optional / `new` | `IContainerRegistry` |
+| View mapping | code-behind `DataContext` or `DataTemplate` | `RegisterForNavigation` |
 
 ---
 
-## Generated ViewModel
+## Generated ViewModel (C# 7.3-safe — block-scoped namespace, no `?`/`??=`)
 
 ```csharp
-using Prism.Mvvm;
 using Prism.Commands;
+using Prism.Mvvm;
 
-namespace {Namespace}.ViewModels;
-
-public sealed class {Name}ViewModel : BindableBase
+namespace {Namespace}.ViewModels
 {
-    private string _title = "{Name}";
-    public string Title
+    public sealed class {Name}ViewModel : BindableBase
     {
-        get => _title;
-        set => SetProperty(ref _title, value);
-    }
+        private string _title = "{Name}";
+        public string Title
+        {
+            get { return _title; }
+            set { SetProperty(ref _title, value); }
+        }
 
-    private DelegateCommand? _loadedCommand;
-    public DelegateCommand LoadedCommand =>
-        _loadedCommand ??= new DelegateCommand(ExecuteLoaded);
+        private DelegateCommand _loadedCommand;
+        public DelegateCommand LoadedCommand
+        {
+            get { return _loadedCommand ?? (_loadedCommand = new DelegateCommand(ExecuteLoaded)); }
+        }
 
-    private void ExecuteLoaded()
-    {
-        // TODO: Initialize data
-        // TODO: 데이터 초기화
+        private void ExecuteLoaded()
+        {
+            // TODO: initialize data
+        }
     }
 }
 ```
 
-## DI Registration
+## DI registration
 
 In `App.xaml.cs` `RegisterTypes`:
 
 ```csharp
 protected override void RegisterTypes(IContainerRegistry containerRegistry)
 {
-    // Navigation registration (View + ViewModel pair)
     containerRegistry.RegisterForNavigation<{Name}View, {Name}ViewModel>();
 }
 ```
 
-## Navigation (instead of DataTemplate Mapping)
-
-Prism uses `IRegionManager.RequestNavigate` instead of DataTemplate mapping:
+## Navigation
 
 ```csharp
-// Navigate to the view
 _regionManager.RequestNavigate("ContentRegion", nameof({Name}View));
 ```
-
-XAML region setup:
 
 ```xml
 <ContentControl prism:RegionManager.RegionName="ContentRegion" />
 ```
 
-> **Note**: `--no-mapping` flag is ignored in Prism 9 mode since navigation replaces DataTemplate mapping.
+> The `--datatemplate` flag is ignored in Prism mode — navigation replaces DataTemplate mapping.
