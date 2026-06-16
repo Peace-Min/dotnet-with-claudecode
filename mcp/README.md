@@ -87,7 +87,7 @@ the repo).
 The server must know where the local clone is. Resolution order:
 
 1. `WPFDEVPACK_REPO_PATH` environment variable
-2. `~/.wpf-dev-pack-mcp/config.json` — `{ "repoPath": "...", "branch": "main" }`
+2. `~/.wpf-net472-airgap-dev-pack-mcp/config.json` — `{ "repoPath": "...", "branch": "main" }`
 
 Configure it from a Claude Code session:
 
@@ -123,7 +123,7 @@ dotnet build mcp/WpfDevPackMcp.csproj -c Release
 npx @modelcontextprotocol/inspector --cli \
   "mcp/bin/Release/net10.0/WpfDevPackMcp.exe" --method tools/list
 
-# Call a tool (set the repo path first, or rely on ~/.wpf-dev-pack-mcp/config.json)
+# Call a tool (set the repo path first, or rely on ~/.wpf-net472-airgap-dev-pack-mcp/config.json)
 npx @modelcontextprotocol/inspector --cli "<exe>" \
   --method tools/call --tool-name list_wpf_topics
 

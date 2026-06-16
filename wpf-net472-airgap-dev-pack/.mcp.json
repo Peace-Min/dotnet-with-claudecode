@@ -11,7 +11,7 @@
     },
     "HandMirrorMcp": {
       "type": "stdio",
-      "command": "${CLAUDE_PLUGIN_ROOT}/bin/HandMirrorMcp/HandMirrorMcp.exe"
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/HandMirrorMcp/handmirror.exe"
     }
   }
 }

@@ -1,10 +1,15 @@
 {
-  "description": "wpf-net472-airgap-dev-pack hooks - .NET SDK version check, XAML validation, MVVM violation detection, build error diagnosis, code formatting, per-project language preference loader, WPF ControlTemplate/Style/animation authoring-rules injection, and net472/net48 + offline + hand-rolled-MVVM hard-guardrails injection (SessionStart) (C# file-based apps, .NET SDK 10.0.300+ required). Offline fork: no online-MCP dependency checks and no context7/Microsoft-Learn reminders. Note: feedback document anonymity audit and Microsoft skill creator reminder are wired through skill frontmatter, not here.",
+  "description": "wpf-net472-airgap-dev-pack hooks - first-run bootstrap check, .NET SDK version check, XAML validation, MVVM violation detection, build error diagnosis, code formatting, per-project language preference loader, WPF ControlTemplate/Style/animation authoring-rules injection, and net472/net48 + offline + hand-rolled-MVVM hard-guardrails injection (SessionStart) (C# file-based apps, .NET SDK 10.0.300+ required). Offline fork: no online-MCP dependency checks and no context7/Microsoft-Learn reminders. Note: feedback document anonymity audit and Microsoft skill creator reminder are wired through skill frontmatter, not here.",
   "hooks": {
     "SessionStart": [
       {
         "matcher": "*",
         "hooks": [
+          {
+            "type": "command",
+            "command": "dotnet \"${CLAUDE_PLUGIN_ROOT}/hooks/BootstrapCheck.cs\" \"${CLAUDE_PLUGIN_ROOT}\"",
+            "timeout": 5
+          },
           {
             "type": "command",
             "command": "dotnet \"${CLAUDE_PLUGIN_ROOT}/hooks/DotnetVersionChecker.cs\"",

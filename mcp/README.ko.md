@@ -82,7 +82,7 @@ API 키는 비밀 — 절대 커밋 금지. 3~6단계는 메인테이너 작업�
 서버는 로컬 클론 위치를 알아야 합니다. 해석 순서:
 
 1. `WPFDEVPACK_REPO_PATH` 환경변수
-2. `~/.wpf-dev-pack-mcp/config.json` — `{ "repoPath": "...", "branch": "main" }`
+2. `~/.wpf-net472-airgap-dev-pack-mcp/config.json` — `{ "repoPath": "...", "branch": "main" }`
 
 Claude Code 세션에서 설정:
 
@@ -116,7 +116,7 @@ dotnet build mcp/WpfDevPackMcp.csproj -c Release
 npx @modelcontextprotocol/inspector --cli \
   "mcp/bin/Release/net10.0/WpfDevPackMcp.exe" --method tools/list
 
-# 도구 호출 (먼저 경로 설정, 또는 ~/.wpf-dev-pack-mcp/config.json 의존)
+# 도구 호출 (먼저 경로 설정, 또는 ~/.wpf-net472-airgap-dev-pack-mcp/config.json 의존)
 npx @modelcontextprotocol/inspector --cli "<exe>" \
   --method tools/call --tool-name list_wpf_topics
 

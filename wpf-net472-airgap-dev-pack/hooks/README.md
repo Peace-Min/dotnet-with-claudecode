@@ -8,6 +8,7 @@ Event hooks that run automatically during Claude Code operations.
 
 | Hook | Trigger | Description |
 |------|---------|-------------|
+| **BootstrapCheck** | SessionStart | On a fresh clone the local MCP executables under `bin/` do not exist yet. If they are missing, this prints the one-time bootstrap command (`pwsh ./setup.ps1`). Emits nothing once `bin/WpfDevPackMcp` is built. |
 | **DotnetVersionChecker** | SessionStart | Verifies .NET SDK 10.0.300+ is installed (required by all hooks, which are C# file-based apps). Emits a high-visibility red warning with the install/update URL if missing or too old. Caches per day to avoid spam. |
 | **LanguagePreferenceLoader** | SessionStart | Reads `.claude/wpf-net472-airgap-dev-pack.local.md` at session start; if a `language:` field is present, emits a directive into the system context so Claude responds in that language for the rest of the session. |
 | **WpfAuthoringRulesLoader** | SessionStart | Injects an always-on, enforced rule set for authoring WPF ControlTemplates / Styles / animations (required `PART_` names per stock control, animation safety, Setter-on-Freezable → MC4111, `StaticResource` forward-reference, the `(UIElement.Children)[n]` path trap, runtime verification). Plugin `.claude/rules` are not auto-loaded for installed users, so these ship as a hook. Full detail in the `animating-wpf-controltemplates` MCP topic. |
@@ -24,6 +25,7 @@ Event hooks that run automatically during Claude Code operations.
 | File | Description |
 |------|-------------|
 | `hooks.json` | Hook configuration and triggers |
+| `BootstrapCheck.cs` | First-run check: instructs to run `setup.ps1` if `bin/` is not built (SessionStart) |
 | `DotnetVersionChecker.cs` | .NET SDK 10.0.300+ presence/version check (SessionStart) |
 | `LanguagePreferenceLoader.cs` | Per-project language preference loader (SessionStart) |
 | `WpfAuthoringRulesLoader.cs` | Injects enforced WPF ControlTemplate/Style/animation authoring rules (SessionStart) |

@@ -8,6 +8,7 @@ Claude Code 작업 중 자동으로 실행되는 이벤트 훅입니다.
 
 | 훅 | 트리거 | 설명 |
 |----|--------|------|
+| **BootstrapCheck** | SessionStart | 새로 클론한 직후에는 `bin/`의 로컬 MCP 실행파일이 아직 없음. 없으면 1회 부트스트랩 명령(`pwsh ./setup.ps1`)을 안내. `bin/WpfDevPackMcp`가 빌드되면 아무것도 출력하지 않음. |
 | **DotnetVersionChecker** | SessionStart | 모든 훅이 C# file-based app으로 작동하기 때문에 필수인 .NET SDK 10.0.300 이상 설치 여부를 검증. 누락/미달 시 설치·업데이트 URL과 함께 빨간색 경고 출력. 하루 1회 캐싱. |
 | **LanguagePreferenceLoader** | SessionStart | 세션 시작 시 `.claude/wpf-net472-airgap-dev-pack.local.md`를 읽어 `language:` 필드가 있으면 시스템 컨텍스트에 응답 언어 지시문을 주입. 해당 세션 동안 Claude가 그 언어로 응답하도록 유도. |
 | **WpfAuthoringRulesLoader** | SessionStart | WPF ControlTemplate / Style / 애니메이션 작성에 항상 적용되는 강제 규칙(스톡 컨트롤별 필수 `PART_` 이름, 애니메이션 안전 규칙, Setter의 Freezable 대상 → MC4111, `StaticResource` 전방 참조, `(UIElement.Children)[n]` 경로 함정, 런타임 검증)을 세션 컨텍스트에 주입. 플러그인 `.claude/rules`는 설치 사용자에게 자동 로드되지 않으므로 훅으로 제공. 상세는 `animating-wpf-controltemplates` MCP 토픽. |
@@ -24,6 +25,7 @@ Claude Code 작업 중 자동으로 실행되는 이벤트 훅입니다.
 | 파일 | 설명 |
 |------|------|
 | `hooks.json` | 훅 설정 및 트리거 |
+| `BootstrapCheck.cs` | 최초 실행 점검: `bin/` 미빌드 시 `setup.ps1` 실행 안내 (SessionStart) |
 | `DotnetVersionChecker.cs` | .NET SDK 10.0.300 이상 설치/버전 검증 (SessionStart) |
 | `LanguagePreferenceLoader.cs` | 프로젝트별 응답 언어 환경설정 로더 (SessionStart) |
 | `WpfAuthoringRulesLoader.cs` | WPF ControlTemplate/Style/애니메이션 작성 강제 규칙 주입 (SessionStart) |

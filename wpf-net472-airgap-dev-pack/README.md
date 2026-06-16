@@ -72,7 +72,22 @@
 
 ## 📦 Installation
 
-### From Marketplace (Recommended)
+### Quick start (closed network — recommended)
+
+On the air-gapped PC (which has the .NET 10 RTM SDK, Claude Code, NuGet access, and VS MSBuild):
+
+```bash
+git clone <your-internal-remote>/dotnet-with-claudecode.git
+cd dotnet-with-claudecode
+pwsh ./setup.ps1          # one-time: builds bin/ (MCP servers + XamlStyler) + configures the knowledge path
+claude --plugin-dir ./wpf-net472-airgap-dev-pack
+```
+
+`setup.ps1` is the single bootstrap step (git cannot auto-run a script on clone). Re-run it only after pulling new commits. At runtime everything is local/offline — no `dnx`, no NuGet resolution, no `git pull`. A SessionStart hook reminds you if `bin/` is not built yet.
+
+> No `pwsh`? It also runs under Windows PowerShell 5.1: `powershell -ExecutionPolicy Bypass -File ./setup.ps1`.
+
+### From Marketplace
 
 ```bash
 # Step 1: Add the marketplace (one-time)

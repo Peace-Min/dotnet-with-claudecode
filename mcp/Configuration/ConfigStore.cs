@@ -5,7 +5,7 @@ namespace WpfDevPackMcp.Configuration;
 
 /// <summary>
 /// Reads the user-written repo config and persists server pull state under
-/// a base directory (default: ~/.wpf-dev-pack-mcp). The env var
+/// a base directory (default: ~/.wpf-net472-airgap-dev-pack-mcp). The env var
 /// WPFDEVPACK_REPO_PATH overrides the config file's repoPath.
 /// </summary>
 public sealed class ConfigStore
@@ -25,7 +25,7 @@ public sealed class ConfigStore
     {
         _baseDir = baseDir ?? Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".wpf-dev-pack-mcp");
+            ".wpf-net472-airgap-dev-pack-mcp");
         Directory.CreateDirectory(_baseDir);
     }
 
