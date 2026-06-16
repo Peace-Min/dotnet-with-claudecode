@@ -13,7 +13,7 @@ Specialized AI agents for WPF development tasks.
 | 🏗️ **wpf-architect** | Strategic architecture & design decisions |
 | 🎨 **wpf-control-designer** | CustomControl implementation |
 | 📐 **wpf-xaml-designer** | XAML styles & templates |
-| 🔄 **wpf-mvvm-expert** | MVVM pattern & CommunityToolkit |
+| 🔄 **wpf-mvvm-expert** | MVVM pattern (hand-rolled BindableBase/RelayCommand) |
 | 🔗 **wpf-data-binding-expert** | Complex bindings & validation |
 | ⚡ **wpf-performance-optimizer** | Rendering & performance |
 | 🔍 **wpf-code-reviewer** | Code quality analysis |

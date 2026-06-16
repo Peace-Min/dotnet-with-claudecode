@@ -14,12 +14,14 @@ skills:
 
 You are a code formatting agent that automatically formats WPF XAML and C# files.
 
-**Requirement**: .NET 10 SDK (uses `dotnet dnx` for cross-platform compatibility)
+**Requirement**: .NET 10 SDK for `dotnet format`. XAML is formatted by the locally
+vendored XamlStyler (`${CLAUDE_PLUGIN_ROOT}/bin/XamlStyler/xstyler.exe`, built by
+`tools/build-local-bin.ps1` / `setup.ps1`) — **no `dnx`, no runtime NuGet**.
 
 ## Your Role
 
-1. Format XAML files using XamlStyler via `dotnet dnx`
-2. Format C# files using `dotnet format`
+1. Format XAML files using the vendored `xstyler.exe`
+2. Format C# files using `dotnet format --no-restore`
 3. Ensure configuration files exist before formatting
 
 ## Workflow
@@ -31,7 +33,7 @@ You are a code formatting agent that automatically formats WPF XAML and C# files
    - If `.editorconfig` doesn't exist at workspace root, copy from skill templates
 
 2. **Format files based on type**:
-   - `.xaml` files: Run `dotnet dnx -y XamlStyler.Console -- -f "{file}" -c "{workspace}/Settings.XamlStyler"`
+   - `.xaml` files: Run `"${CLAUDE_PLUGIN_ROOT}/bin/XamlStyler/xstyler.exe" -f "{file}" -c "{workspace}/Settings.XamlStyler"`
    - `.cs` files: Find the closest .csproj and run `dotnet format "{csproj}" --include "{file}" --no-restore`
 
 3. **Report results**:
@@ -43,7 +45,7 @@ You are a code formatting agent that automatically formats WPF XAML and C# files
 ### Single file formatting:
 ```bash
 # XAML file
-dotnet dnx -y XamlStyler.Console -- -f "path/to/file.xaml" -c "Settings.XamlStyler"
+"${CLAUDE_PLUGIN_ROOT}/bin/XamlStyler/xstyler.exe" -f "path/to/file.xaml" -c "Settings.XamlStyler"
 
 # C# file (find csproj first)
 dotnet format "path/to/project.csproj" --include "path/to/file.cs" --no-restore
@@ -52,52 +54,11 @@ dotnet format "path/to/project.csproj" --include "path/to/file.cs" --no-restore
 ### Directory formatting:
 ```bash
 # All XAML files
-dotnet dnx -y XamlStyler.Console -- -d "." -r -c "Settings.XamlStyler"
+"${CLAUDE_PLUGIN_ROOT}/bin/XamlStyler/xstyler.exe" -d "." -r -c "Settings.XamlStyler"
 
 # All C# files in solution
 dotnet format "solution.sln" --no-restore
 ```
-
-## ObservableProperty Inline Rule
-
-CommunityToolkit.Mvvm의 `[ObservableProperty]` 어트리뷰트는 항상 **필드 선언과 같은 줄에 inline으로 작성**해야 합니다.
-
-### Single Attribute
-```csharp
-// ✅ Good: Inline
-[ObservableProperty] private string _userName = string.Empty;
-[ObservableProperty] private int _age;
-[ObservableProperty] private bool _isActive;
-
-// ❌ Bad: Separate line
-[ObservableProperty]
-private string _userName = string.Empty;
-```
-
-### Multiple Attributes
-다른 어트리뷰트가 있을 경우, 다른 어트리뷰트는 별도 줄에 작성하고 **`[ObservableProperty]`는 항상 마지막 줄에 inline으로** 작성합니다.
-
-```csharp
-// ✅ Good: Multiple attributes, ObservableProperty always inline
-[NotifyPropertyChangedFor(nameof(FullName))]
-[ObservableProperty] private string _firstName = string.Empty;
-
-[Required]
-[MinLength(3)]
-[ObservableProperty] private string _name = string.Empty;
-
-// ❌ Bad: ObservableProperty on separate line
-[NotifyPropertyChangedFor(nameof(FullName))]
-[ObservableProperty]
-private string _firstName = string.Empty;
-```
-
-### Reason
-- Code density: Field definition is complete in one line
-- Readability: `[ObservableProperty]` is immediately connected to the field
-- Consistency: Same style throughout the project
-
----
 
 ## XAML Property Element Syntax Rule
 

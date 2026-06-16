@@ -72,9 +72,13 @@ public void UpdateUI()
     MessageBox.Show("Done");     // ❌ UI from ViewModel
 }
 
-// CORRECT: Use binding and services
-[ObservableProperty]
-private string _message;  // ✅ Bind to TextBox.Text
+// CORRECT: Use binding and services (hand-rolled BindableBase)
+private string _message;
+public string Message
+{
+    get { return _message; }
+    set { SetProperty(ref _message, value); }  // ✅ Bind to TextBox.Text
+}
 
 // Inject dialog service
 private readonly IDialogService _dialogService;

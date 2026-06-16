@@ -13,7 +13,7 @@ WPF 개발 작업을 위한 전문 AI 에이전트입니다.
 | 🏗️ **wpf-architect** | 전략적 아키텍처 및 설계 결정 |
 | 🎨 **wpf-control-designer** | CustomControl 구현 |
 | 📐 **wpf-xaml-designer** | XAML 스타일 및 템플릿 |
-| 🔄 **wpf-mvvm-expert** | MVVM 패턴 및 CommunityToolkit |
+| 🔄 **wpf-mvvm-expert** | MVVM 패턴 (직접 구현 BindableBase/RelayCommand) |
 | 🔗 **wpf-data-binding-expert** | 복잡한 바인딩 및 유효성 검사 |
 | ⚡ **wpf-performance-optimizer** | 렌더링 및 성능 |
 | 🔍 **wpf-code-reviewer** | 코드 품질 분석 |

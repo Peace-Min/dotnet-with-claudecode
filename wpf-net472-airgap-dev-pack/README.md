@@ -21,13 +21,15 @@
 
 ## ✨ Highlights
 
-> **MVVM Composition Style**: wpf-net472-airgap-dev-pack enforces a single matching path per MVVM framework, both with **Stateful ViewModel**:
-> - **CommunityToolkit.Mvvm** (default) → **ViewModel First Composition** via `Mappings.xaml` + implicit DataTemplate.
-> - **Prism 9** (alternative) → **View First Composition** via `RegisterForNavigation` + `IRegionManager.RequestNavigate`.
->
-> Prism `ViewModelLocator.AutoWireViewModel`, code-behind `DataContext = new VM()`, inline XAML `DataContext`, and Stateless-VM patterns are prohibited (see [`.claude/rules/prohibitions.md`](./.claude/rules/prohibitions.md) and [`docs/TERMINOLOGY.md`](./docs/TERMINOLOGY.md)).
->
-> Pre-v1.6.4 docs labeled this uniformly as "View First MVVM" — that label conflicted with Microsoft's official definition (lookup key for `Mappings.xaml` is the ViewModel type → ViewModel First). v1.6.4 corrects the labels per path; the enforced code rules are unchanged.
+> **MVVM**: dependency-free **hand-rolled MVVM** — a `BindableBase`
+> (`INotifyPropertyChanged`) + `RelayCommand` / `RelayCommand<T>` (`ICommand`),
+> compiled for **net472/net48 (C# 7.3)**. **No CommunityToolkit**, no framework
+> auto-detection. If a project lacks the base classes the generators create them;
+> if it has its own, they are reused. Wiring is pragmatic — code-behind
+> `DataContext`, an implicit `DataTemplate`, or DI — match what the project uses.
+> Prism stays an **opt-in** alternative for projects already on Prism (7.2/8.1 on
+> net472). See [`.claude/rules/mvvm-constraints.md`](./.claude/rules/mvvm-constraints.md)
+> and [`.claude/rules/prohibitions.md`](./.claude/rules/prohibitions.md).
 
 <table>
 <tr>
@@ -37,7 +39,7 @@
 - **10 Specialized Agents** for different WPF tasks
 - **Session-model agnostic** — agents inherit your current model
 - **MCP-served knowledge** — search-before-answer via WpfDevPackMcp
-- **Prism 9** companion files for dual-framework support
+- **Prism** companion files (opt-in, for existing Prism projects)
 
 </td>
 <td width="50%">
@@ -162,10 +164,10 @@ approved offline packages, never fetched at runtime):
 ### Create a New WPF Project
 
 ```bash
-# With CommunityToolkit.Mvvm (Recommended)
+# net472/net48 + hand-rolled MVVM (default)
 /wpf-net472-airgap-dev-pack:make-wpf-project MyApp
 
-# With Prism Framework
+# Prism (opt-in; existing Prism projects)
 /wpf-net472-airgap-dev-pack:make-wpf-project MyApp --prism
 ```
 
@@ -230,7 +232,7 @@ wpf-architect: [A-1] What kind of app? Describe the concept.
    (Keywords detected: "chart", "real-time" → LiveCharts2, performance defaults)
 
 wpf-architect: [A-2] Architecture pattern?
-   → User selects: "MVVM + CommunityToolkit"
+   → User selects: "Hand-rolled MVVM"
 
 wpf-architect: [A-3] Project scale?
    → User selects: "Medium (5-15 Views)"
@@ -260,7 +262,7 @@ wpf-net472-airgap-dev-pack does **not** use a keyword-detection hook. WPF knowle
 | You ask about | Topic |
 |---------------|-------|
 | Authoring a CustomControl | `authoring-wpf-controls` |
-| MVVM with CommunityToolkit | `implementing-handrolled-mvvm` |
+| Hand-rolled MVVM | `implementing-handrolled-mvvm` |
 | Rendering with DrawingContext | `rendering-with-drawingcontext` |
 | High-performance rendering | `rendering-wpf-high-performance` |
 
@@ -284,7 +286,7 @@ For complex tasks, a specialized agent is recommended (e.g. `wpf-performance-opt
 | 🏗️ **wpf-architect** | Strategic architecture & design decisions |
 | 🎨 **wpf-control-designer** | CustomControl implementation |
 | 📐 **wpf-xaml-designer** | XAML styles & templates |
-| 🔄 **wpf-mvvm-expert** | MVVM pattern & CommunityToolkit |
+| 🔄 **wpf-mvvm-expert** | MVVM pattern (hand-rolled) |
 | 🔗 **wpf-data-binding-expert** | Complex bindings & validation |
 | ⚡ **wpf-performance-optimizer** | Rendering & performance |
 | 🔍 **wpf-code-reviewer** | Code quality analysis |

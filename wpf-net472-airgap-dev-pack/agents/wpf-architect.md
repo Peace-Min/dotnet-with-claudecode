@@ -107,21 +107,21 @@ AskUserQuestion:
   question: "Which architecture pattern would you like to use?"
   header: "Architecture"
   options:
-    - label: "MVVM + CommunityToolkit (Recommended)"
-      description: "Modern MVVM with source generators, best for maintainable apps"
+    - label: "Hand-rolled MVVM (Recommended)"
+      description: "Dependency-free BindableBase/RelayCommand — the default; works on net472/net48, no libraries"
     - label: "Code-behind (Simple)"
       description: "Direct event handlers, best for quick prototypes"
-    - label: "Prism Framework"
-      description: "Enterprise MVVM with modules, regions, and navigation"
+    - label: "Prism (opt-in)"
+      description: "Only if the project already uses Prism (7.2/8.1 on net472; never auto-introduced)"
     - label: "No preference"
       description: "I'll recommend based on your project complexity"
 ```
 
 | Selection | Activate Skills | Delegate To |
 |-----------|-----------------|-------------|
-| MVVM + CommunityToolkit | `implementing-handrolled-mvvm`, `structuring-wpf-projects` | `wpf-mvvm-expert` |
+| Hand-rolled MVVM | `implementing-handrolled-mvvm`, `structuring-wpf-projects` | `wpf-mvvm-expert` |
 | Code-behind | Basic WPF patterns only | - |
-| Prism | `make-wpf-project --prism` | - |
+| Prism | `make-wpf-project --prism` (opt-in) | - |
 | No preference | Analyze complexity, then recommend | - |
 
 ### A-4: Project Scale
@@ -140,8 +140,8 @@ AskUserQuestion:
 
 | Selection | `make-wpf-project` Option |
 |-----------|--------------------------|
-| 경량 | `--minimal` |
-| 표준 | (default) |
+| 경량 | (default — single project) |
+| 표준 | `--full` (App + ViewModels + Core) |
 | 엔터프라이즈 | `--full` |
 
 ### A-5: Complexity Level
@@ -180,7 +180,7 @@ AskUserQuestion:
     - label: "Error Handling: ErrorOr"
       description: "Result pattern for service layer, replaces exceptions"
     - label: "기본만 사용 (No additional libraries)"
-      description: "CommunityToolkit.Mvvm + GenericHost only"
+      description: "직접 구현 MVVM(BindableBase/RelayCommand)만, 추가 라이브러리·DI 프레임워크 없음"
     - label: "기타 (직접 입력)"
       description: "위에 없는 라이브러리를 직접 입력"
 ```

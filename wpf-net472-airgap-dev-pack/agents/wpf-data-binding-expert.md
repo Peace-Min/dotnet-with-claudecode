@@ -38,60 +38,55 @@ WPF 데이터 바인딩 관련 모든 작업을 담당합니다:
 ### 1. Converter Design
 
 ```csharp
-// ✅ Good: Singleton pattern with static instance
-public sealed class BoolToVisibilityConverter : IValueConverter
+// MarkupExtension singleton (matches rules/converter-patterns.md). Do NOT also
+// expose a separate static Instance property. net472/C# 7.3-safe.
+public sealed class BoolToVisibilityConverter : MarkupExtension, IValueConverter
 {
-    public static BoolToVisibilityConverter Instance { get; } = new();
+    private static readonly BoolToVisibilityConverter _instance = new BoolToVisibilityConverter();
+    public override object ProvideValue(IServiceProvider serviceProvider) { return _instance; }
 
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is not bool boolValue)
-        {
+        if (!(value is bool boolValue))
             return DependencyProperty.UnsetValue;
-        }
 
-        // Support inverse parameter
-        // 역방향 파라미터 지원
-        var invert = parameter is "Invert" or "invert" or true;
-
+        // 역방향 파라미터 지원 / inverse parameter
+        var invert = Equals(parameter, "Invert") || Equals(parameter, "invert");
         return (boolValue ^ invert) ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotSupportedException();
     }
 }
 ```
 
+Use directly in XAML: `Converter={converters:BoolToVisibilityConverter}` (no resource entry).
+
 ### 2. MultiBinding Pattern
 
 ```csharp
-public sealed class FullNameConverter : IMultiValueConverter
+public sealed class FullNameConverter : MarkupExtension, IMultiValueConverter
 {
-    public static FullNameConverter Instance { get; } = new();
+    private static readonly FullNameConverter _instance = new FullNameConverter();
+    public override object ProvideValue(IServiceProvider serviceProvider) { return _instance; }
 
-    public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        // Always validate input
-        // 항상 입력 검증
-        if (values is null || values.Length < 2)
-        {
+        // 항상 입력 검증 / always validate input
+        if (values == null || values.Length < 2)
             return DependencyProperty.UnsetValue;
-        }
 
         if (values.Any(v => v == DependencyProperty.UnsetValue || v == null))
-        {
             return DependencyProperty.UnsetValue;
-        }
 
-        var firstName = values[0]?.ToString() ?? string.Empty;
-        var lastName = values[1]?.ToString() ?? string.Empty;
-
-        return $"{firstName} {lastName}".Trim();
+        var firstName = values[0] == null ? string.Empty : values[0].ToString();
+        var lastName = values[1] == null ? string.Empty : values[1].ToString();
+        return (firstName + " " + lastName).Trim();
     }
 
-    public object[] ConvertBack(object value, Type[] targetTypes, object? parameter, CultureInfo culture)
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
     {
         throw new NotSupportedException();
     }
@@ -101,31 +96,48 @@ public sealed class FullNameConverter : IMultiValueConverter
 ### 3. Validation Pattern (INotifyDataErrorInfo)
 
 ```csharp
-public partial class FormViewModel : ObservableValidator
+// Hand-rolled INotifyDataErrorInfo on BindableBase using DataAnnotations.
+// No CommunityToolkit ObservableValidator. See the implementing-wpf-validation topic.
+public sealed class FormViewModel : BindableBase, INotifyDataErrorInfo
 {
+    private readonly Dictionary<string, List<string>> _errors = new Dictionary<string, List<string>>();
+
+    private string _name = string.Empty;
     [Required(ErrorMessage = "필수 입력입니다.")]
     [MinLength(2, ErrorMessage = "2자 이상 입력해주세요.")]
-    [ObservableProperty] private string _name = string.Empty;
-
-    [EmailAddress(ErrorMessage = "올바른 이메일 형식이 아닙니다.")]
-    [ObservableProperty] private string _email = string.Empty;
-
-    // Trigger validation on property change
-    // 속성 변경 시 검증 트리거
-    partial void OnNameChanged(string value) => ValidateProperty(value, nameof(Name));
-    partial void OnEmailChanged(string value) => ValidateProperty(value, nameof(Email));
-
-    [RelayCommand(CanExecute = nameof(CanSubmit))]
-    private void Submit()
+    public string Name
     {
-        ValidateAllProperties();
-        if (!HasErrors)
-        {
-            // Submit logic
-        }
+        get { return _name; }
+        set { if (SetProperty(ref _name, value)) Validate(nameof(Name), value); }
     }
 
-    private bool CanSubmit() => !HasErrors;
+    public event EventHandler<DataErrorsChangedEventArgs> ErrorsChanged;
+    public bool HasErrors { get { return _errors.Count > 0; } }
+
+    public IEnumerable GetErrors(string propertyName)
+    {
+        List<string> list;
+        if (propertyName != null && _errors.TryGetValue(propertyName, out list))
+            return list;
+        return null;
+    }
+
+    private void Validate(string propertyName, object value)
+    {
+        var results = new List<ValidationResult>();
+        var ctx = new ValidationContext(this) { MemberName = propertyName };
+        Validator.TryValidateProperty(value, ctx, results);
+
+        if (results.Count > 0)
+            _errors[propertyName] = results.Select(r => r.ErrorMessage).ToList();
+        else
+            _errors.Remove(propertyName);
+
+        var handler = ErrorsChanged;
+        if (handler != null)
+            handler(this, new DataErrorsChangedEventArgs(propertyName));
+        RaisePropertyChanged(nameof(HasErrors));
+    }
 }
 ```
 
@@ -142,15 +154,14 @@ public partial class FormViewModel : ObservableValidator
 // 디버그 컨버터
 public sealed class DebugConverter : IValueConverter
 {
-    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        // Set breakpoint here
-        // 여기에 중단점 설정
+        // 여기에 중단점 설정 / set breakpoint here
         Debug.WriteLine($"Convert: {value} -> {targetType.Name}");
         return value;
     }
 
-    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         Debug.WriteLine($"ConvertBack: {value} -> {targetType.Name}");
         return value;
@@ -164,7 +175,8 @@ public sealed class DebugConverter : IValueConverter
 - [ ] MultiBinding에서 모든 값 유효성 검증
 - [ ] Validation 메시지는 한글/영문 병기
 - [ ] 양방향 바인딩 불필요 시 ConvertBack에서 NotSupportedException
-- [ ] Converter에 static Instance 속성 제공
+- [ ] Converter는 MarkupExtension 싱글톤 (별도 static Instance 속성 금지; `rules/converter-patterns.md`)
+- [ ] net472/C# 7.3 안전 (object? 등 nullable 참조형 금지, ViewModel은 BindableBase)
 - [ ] 바인딩 오류 시 OutputWindow 확인
 
 ## Common Issues
