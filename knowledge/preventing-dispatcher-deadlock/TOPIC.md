@@ -1,6 +1,6 @@
 # Preventing Dispatcher Deadlock in WPF Event Handlers
 
-> Prevents WPF Dispatcher deadlocks caused by sync-over-async patterns in event handlers, Command callbacks, and virtual method overrides. Use when calling async methods from Button.Click, Window.Loaded, Window.Closing, Application.OnExit, ItemsControl.SelectionChanged, or any callback that runs on the Dispatcher thread. Covers the DispatcherSynchronizationContext capture mechanism that causes .GetAwaiter().GetResult(), .Wait(), and .Result to deadlock, explains why Task.Run wrapping is not a real fix, enforces async void with try/catch as the only safe event-handler pattern, and provides reentrancy guards plus CommunityToolkit.Mvvm and Prism 9 command alternatives. Apply whenever code calls an async method from WPF UI thread code, especially when the method signature cannot be changed to async Task (overrides, interface implementations, event handlers).
+> Prevents WPF Dispatcher deadlocks caused by sync-over-async patterns in event handlers, Command callbacks, and virtual method overrides. Use when calling async methods from Button.Click, Window.Loaded, Window.Closing, Application.OnExit, ItemsControl.SelectionChanged, or any callback that runs on the Dispatcher thread. Covers the DispatcherSynchronizationContext capture mechanism that causes .GetAwaiter().GetResult(), .Wait(), and .Result to deadlock, explains why Task.Run wrapping is not a real fix, enforces async void with try/catch as the only safe event-handler pattern, and provides reentrancy guards plus hand-rolled RelayCommand and Prism 9 command alternatives. Apply whenever code calls an async method from WPF UI thread code, especially when the method signature cannot be changed to async Task (overrides, interface implementations, event handlers).
 
 Every WPF event handler runs on the Dispatcher thread. Blocking an async method from such a handler using `.GetAwaiter().GetResult()`, `.Wait()`, or `.Result` causes a permanent deadlock.
 
@@ -136,7 +136,7 @@ private async void OnLoaded(object sender, RoutedEventArgs e)
 | Method kind | Return type | Reason |
 |-------------|-------------|--------|
 | Event handler | `async void` allowed | Event delegate signature requires `void` |
-| Command method (`[RelayCommand]`) | `async Task` | Caller can await completion |
+| Command method (backing a `RelayCommand`) | `async Task` | Caller can await completion |
 | Service method | `async Task` | Exception propagation and composition |
 | Library API | `async Task` | Caller retains control |
 
@@ -193,7 +193,7 @@ private async void OnSaveClick(object sender, RoutedEventArgs e)
 }
 ```
 
-In MVVM projects, `[RelayCommand]`'s `CanExecute` together with the generated `IsRunning` flag handles this automatically.
+In MVVM projects, give the `RelayCommand` a `CanExecute` predicate backed by an `_isBusy` flag and call `RaiseCanExecuteChanged()` when it flips — this disables the bound control while the async work runs.
 
 ---
 
@@ -219,13 +219,19 @@ protected override void OnExit(ExitEventArgs e)
 
 ## 6. MVVM Alternatives
 
-### 6.1 CommunityToolkit.Mvvm
+### 6.1 Hand-Rolled MVVM (default)
 
 ```csharp
-public sealed partial class EditorViewModel : ObservableObject
+public sealed class EditorViewModel : BindableBase
 {
-    // RelayCommand automatically wraps async Task in an async-safe command
-    [RelayCommand]
+    public EditorViewModel()
+    {
+        // Wrap the async method so the command body stays async-safe.
+        SaveCommand = new RelayCommand(async () => await SaveAsync());
+    }
+
+    public ICommand SaveCommand { get; }
+
     private async Task SaveAsync()
     {
         await _repository.SaveAsync();
@@ -237,7 +243,12 @@ public sealed partial class EditorViewModel : ObservableObject
 <Button Content="Save" Command="{Binding SaveCommand}" />
 ```
 
-`[RelayCommand]` generates an internal `async void` wrapper that forwards exceptions through `TaskScheduler.UnobservedTaskException`, maintains an `IsRunning` flag, and disables `CanExecute` while running. No manual guard required.
+The command body is `async () => await SaveAsync()`, so the await runs on the
+Dispatcher without ever being blocked by `.Result`/`.Wait()`. Because the
+lambda is effectively `async void`, wrap the awaited work in `try/catch`
+(inside `SaveAsync` or the lambda) so a faulted task does not crash the
+process. For reentrancy, gate execution with a `CanExecute` predicate plus an
+`_isBusy` flag and call `SaveCommand.RaiseCanExecuteChanged()` around the work.
 
 ### 6.2 Prism 9
 
@@ -284,7 +295,7 @@ Do you need to call an async method from UI-thread code?
 - [ ] Every `async void` handler has a top-level `try/catch`
 - [ ] Business logic lives in `async Task` methods, not in the handler
 - [ ] Reentrant handlers guard with a flag or disable the control
-- [ ] MVVM code uses `[RelayCommand]` or `AsyncDelegateCommand` instead of raw handlers
+- [ ] MVVM code uses a `RelayCommand` async lambda (or Prism `AsyncDelegateCommand`) instead of raw handlers
 - [ ] No `ConfigureAwait(false)` used as an attempted deadlock workaround
 - [ ] Overrides whose signature forbids `async void` use the `shutting-down-wpf-gracefully` skill
 
@@ -296,7 +307,7 @@ Do you need to call an async method from UI-thread code?
 |-------|--------------|
 | `shutting-down-wpf-gracefully` | Applies this skill to shutdown scenarios (`OnExit`, `Window.Closing`) |
 | `threading-wpf-dispatcher` | Dispatcher priorities and scheduling |
-| `implementing-handrolled-mvvm` | `[RelayCommand]` usage details |
+| `implementing-handrolled-mvvm` | `RelayCommand` usage details |
 
 ---
 

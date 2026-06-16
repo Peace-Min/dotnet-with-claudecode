@@ -166,45 +166,67 @@ public sealed class BenchmarkCanvas : FrameworkElement
 Pattern allowing ViewModel to call rendering methods without directly referencing View type:
 
 ```csharp
-namespace MyApp.ViewModels;
-
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-
-public sealed partial class RenderViewModel : ObservableObject
+namespace MyApp.ViewModels
 {
-    // Store only delegates without View type reference
-    private Func<int, Task<TimeSpan>>? _drawItems;
-    private Action? _clearCanvas;
+    using System;
+    using System.Threading.Tasks;
+    using System.Windows.Input;
+    using MyApp.Mvvm;
 
-    [ObservableProperty] private bool _isRendering;
-
-    [ObservableProperty] private string _elapsedTime = "Waiting...";
-
-    // Inject required methods from View
-    public void SetRenderActions(
-        Func<int, Task<TimeSpan>> drawItems,
-        Action clearCanvas)
+    public sealed class RenderViewModel : BindableBase
     {
-        _drawItems = drawItems;
-        _clearCanvas = clearCanvas;
-    }
+        // Store only delegates without View type reference
+        private Func<int, Task<TimeSpan>> _drawItems;
+        private Action _clearCanvas;
 
-    [RelayCommand]
-    private async Task RenderAsync()
-    {
-        if (_drawItems is null)
+        public RenderViewModel()
         {
-            return;
+            RenderCommand = new RelayCommand(async () => await RenderAsync());
         }
 
-        IsRendering = true;
-        _clearCanvas?.Invoke();
+        public ICommand RenderCommand { get; }
 
-        var elapsed = await _drawItems(10000);
-        ElapsedTime = $"{elapsed.TotalMilliseconds:F2} ms";
+        private bool _isRendering;
+        public bool IsRendering
+        {
+            get { return _isRendering; }
+            set { SetProperty(ref _isRendering, value); }
+        }
 
-        IsRendering = false;
+        private string _elapsedTime = "Waiting...";
+        public string ElapsedTime
+        {
+            get { return _elapsedTime; }
+            set { SetProperty(ref _elapsedTime, value); }
+        }
+
+        // Inject required methods from View
+        public void SetRenderActions(
+            Func<int, Task<TimeSpan>> drawItems,
+            Action clearCanvas)
+        {
+            _drawItems = drawItems;
+            _clearCanvas = clearCanvas;
+        }
+
+        private async Task RenderAsync()
+        {
+            if (_drawItems == null)
+            {
+                return;
+            }
+
+            IsRendering = true;
+            if (_clearCanvas != null)
+            {
+                _clearCanvas();
+            }
+
+            var elapsed = await _drawItems(10000);
+            ElapsedTime = string.Format("{0:F2} ms", elapsed.TotalMilliseconds);
+
+            IsRendering = false;
+        }
     }
 }
 ```

@@ -63,36 +63,48 @@ Data Layer (ObservableCollection<T>)
 ```csharp
 // Services/MemberCollectionService.cs
 // This class can reference PresentationFramework
-namespace MyApp.Services;
+using System.Collections;
+using System.Collections.ObjectModel;
+using System.Windows.Data;
 
-public sealed class MemberCollectionService
+namespace MyApp.Services
 {
-    private ObservableCollection<Member> Source { get; } = [];
-
-    // Factory Method: Create filtered view
-    // Returns IEnumerable so ViewModel doesn't know WPF types
-    public IEnumerable CreateView(Predicate<object>? filter = null)
+    public sealed class MemberCollectionService
     {
-        var viewSource = new CollectionViewSource { Source = Source };
-        var view = viewSource.View;
+        private ObservableCollection<Member> Source { get; } =
+            new ObservableCollection<Member>();
 
-        if (filter is not null)
+        // Factory Method: Create filtered view
+        // Returns IEnumerable so ViewModel doesn't know WPF types
+        public IEnumerable CreateView(Predicate<object> filter = null)
         {
-            view.Filter = filter;
+            var viewSource = new CollectionViewSource { Source = Source };
+            var view = viewSource.View;
+
+            if (filter != null)
+            {
+                view.Filter = filter;
+            }
+
+            return view; // ICollectionView inherits IEnumerable
         }
 
-        return view; // ICollectionView inherits IEnumerable
+        public void Add(Member item)
+        {
+            Source.Add(item);
+        }
+
+        public void Remove(Member item)
+        {
+            if (item != null)
+                Source.Remove(item);
+        }
+
+        public void Clear()
+        {
+            Source.Clear();
+        }
     }
-
-    public void Add(Member item) => Source.Add(item);
-
-    public void Remove(Member? item)
-    {
-        if (item is not null)
-            Source.Remove(item);
-    }
-
-    public void Clear() => Source.Clear();
 }
 ```
 
@@ -100,43 +112,52 @@ public sealed class MemberCollectionService
 
 ```csharp
 // ViewModel uses only IEnumerable (pure BCL type)
-namespace MyApp.ViewModels;
+using System.Collections;
+using System.Linq;
+using MyApp.Mvvm;      // hand-rolled BindableBase
+using MyApp.Services;  // MemberCollectionService
 
-public abstract class BaseFilteredViewModel
+namespace MyApp.ViewModels
 {
-    public IEnumerable? Members { get; }
-
-    protected BaseFilteredViewModel(Predicate<object> filter)
+    public abstract class BaseFilteredViewModel
     {
-        // Receives IEnumerable from Service
-        Members = memberService.CreateView(filter);
-    }
-}
+        public IEnumerable Members { get; private set; }
 
-// Each filtered ViewModel
-public sealed class WalkerViewModel : BaseFilteredViewModel
-{
-    public WalkerViewModel()
-        : base(item => (item as Member)?.Type == DeviceTypes.Walker)
-    {
-    }
-}
-
-// Or use with direct type casting
-public sealed class AppViewModel : ObservableObject
-{
-    public IEnumerable? Members { get; }
-
-    public AppViewModel()
-    {
-        Members = memberService.CreateView();
+        protected BaseFilteredViewModel(
+            MemberCollectionService memberService, Predicate<object> filter)
+        {
+            // Receives IEnumerable from Service
+            Members = memberService.CreateView(filter);
+        }
     }
 
-    // Manipulate collection with LINQ when needed
-    private void ProcessMembers()
+    // Each filtered ViewModel
+    public sealed class WalkerViewModel : BaseFilteredViewModel
     {
-        var memberList = Members?.Cast<Member>().ToList();
-        // Processing logic...
+        public WalkerViewModel(MemberCollectionService memberService)
+            : base(memberService, item => (item as Member)?.Type == DeviceTypes.Walker)
+        {
+        }
+    }
+
+    // Or use with direct type casting
+    public sealed class AppViewModel : BindableBase
+    {
+        public IEnumerable Members { get; private set; }
+
+        public AppViewModel(MemberCollectionService memberService)
+        {
+            Members = memberService.CreateView();
+        }
+
+        // Manipulate collection with LINQ when needed
+        private void ProcessMembers()
+        {
+            var memberList = Members == null
+                ? null
+                : Members.Cast<Member>().ToList();
+            // Processing logic...
+        }
     }
 }
 ```
@@ -147,51 +168,69 @@ This approach keeps ViewModel completely independent from WPF, but requires init
 
 ```csharp
 // ViewModel - Uses pure BCL only
-namespace MyApp.ViewModels;
+using System.Collections.ObjectModel;
+using System.ComponentModel; // ICollectionView lives in WindowsBase.dll
+using MyApp.Mvvm;             // hand-rolled BindableBase
 
-public sealed partial class MainViewModel : ObservableObject
+namespace MyApp.ViewModels
 {
-    [ObservableProperty] private ObservableCollection<Person> _people = [];
-
-    private ICollectionView? _peopleView;
-
-    // Injected from View
-    public void InitializeCollectionView(ICollectionView collectionView)
+    public sealed class MainViewModel : BindableBase
     {
-        _peopleView = collectionView;
-        _peopleView.Filter = FilterPerson;
-    }
+        private ObservableCollection<Person> _people =
+            new ObservableCollection<Person>();
+        public ObservableCollection<Person> People
+        {
+            get { return _people; }
+            set { SetProperty(ref _people, value); }
+        }
 
-    private bool FilterPerson(object item)
-    {
-        // Filtering logic
-        return true;
+        private ICollectionView _peopleView;
+
+        // Injected from View
+        public void InitializeCollectionView(ICollectionView collectionView)
+        {
+            _peopleView = collectionView;
+            _peopleView.Filter = FilterPerson;
+        }
+
+        private bool FilterPerson(object item)
+        {
+            // Filtering logic
+            return true;
+        }
     }
 }
 
 // MainWindow.xaml.cs - View's Code-Behind
-namespace MyApp.Views;
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Data;
 
-public partial class MainWindow : Window
+namespace MyApp.Views
 {
-    public MainWindow()
+    public partial class MainWindow : Window
     {
-        InitializeComponent();
+        public MainWindow()
+        {
+            InitializeComponent();
 
-        var viewModel = new MainViewModel();
-        DataContext = viewModel;
+            var viewModel = new MainViewModel();
+            DataContext = viewModel;
 
-        // Create CollectionViewSource in View layer
-        ICollectionView collectionView =
-            CollectionViewSource.GetDefaultView(viewModel.People);
+            // Create CollectionViewSource in View layer
+            ICollectionView collectionView =
+                CollectionViewSource.GetDefaultView(viewModel.People);
 
-        // Inject into ViewModel
-        viewModel.InitializeCollectionView(collectionView);
+            // Inject into ViewModel
+            viewModel.InitializeCollectionView(collectionView);
+        }
     }
 }
 ```
 
-**Note**: This approach requires ViewModel to know the `ICollectionView` type, so WindowsBase.dll reference is needed. For complete independence, use the Service Layer approach.
+**Note**: This approach requires ViewModel to know the `ICollectionView` type
+(in `System.ComponentModel`, shipped in WindowsBase.dll), so a WindowsBase.dll
+reference is needed. For complete independence, use the Service Layer approach.
 
 #### 5.6.5 Project Structure (Strict MVVM)
 

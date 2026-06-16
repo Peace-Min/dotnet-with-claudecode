@@ -1,6 +1,11 @@
 # MVVM Pattern with CollectionView — Advanced Patterns
 
-> Core concepts: See [SKILL.md](SKILL.md)
+> Core concepts: See [TOPIC.md](TOPIC.md)
+
+> **net472/no-CTK note (this fork):** keep the Service-Layer encapsulation of
+> sorting/grouping; the ViewModel uses the hand-rolled `BindableBase`
+> (no CommunityToolkit.Mvvm) and C# 7.3-safe syntax. The fork's MVVM standard is
+> `implementing-handrolled-mvvm`.
 
 ## Utilizing CollectionView Features in Service Layer
 
@@ -8,56 +13,75 @@ Service Layer can encapsulate various CollectionView features.
 
 ```csharp
 // Services/MemberCollectionService.cs
-namespace MyApp.Services;
+using System.Collections;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Data;
 
-public sealed class MemberCollectionService
+namespace MyApp.Services
 {
-    private ObservableCollection<Member> Source { get; } = [];
-
-    public IEnumerable CreateView(Predicate<object>? filter = null)
+    public sealed class MemberCollectionService
     {
-        var viewSource = new CollectionViewSource { Source = Source };
-        var view = viewSource.View;
+        private ObservableCollection<Member> Source { get; } =
+            new ObservableCollection<Member>();
 
-        if (filter is not null)
+        public IEnumerable CreateView(Predicate<object> filter = null)
         {
-            view.Filter = filter;
+            var viewSource = new CollectionViewSource { Source = Source };
+            var view = viewSource.View;
+
+            if (filter != null)
+            {
+                view.Filter = filter;
+            }
+
+            return view;
         }
 
-        return view;
+        // Create sorted view
+        public IEnumerable CreateSortedView(
+            string propertyName,
+            ListSortDirection direction = ListSortDirection.Ascending)
+        {
+            var viewSource = new CollectionViewSource { Source = Source };
+            var view = viewSource.View;
+
+            view.SortDescriptions.Add(
+                new SortDescription(propertyName, direction)
+            );
+
+            return view;
+        }
+
+        // Create grouped view
+        public IEnumerable CreateGroupedView(string groupPropertyName)
+        {
+            var viewSource = new CollectionViewSource { Source = Source };
+            var view = viewSource.View;
+
+            view.GroupDescriptions.Add(
+                new PropertyGroupDescription(groupPropertyName)
+            );
+
+            return view;
+        }
+
+        public void Add(Member item)
+        {
+            Source.Add(item);
+        }
+
+        public void Remove(Member item)
+        {
+            if (item != null)
+                Source.Remove(item);
+        }
+
+        public void Clear()
+        {
+            Source.Clear();
+        }
     }
-
-    // Create sorted view
-    public IEnumerable CreateSortedView(
-        string propertyName,
-        ListSortDirection direction = ListSortDirection.Ascending)
-    {
-        var viewSource = new CollectionViewSource { Source = Source };
-        var view = viewSource.View;
-
-        view.SortDescriptions.Add(
-            new SortDescription(propertyName, direction)
-        );
-
-        return view;
-    }
-
-    // Create grouped view
-    public IEnumerable CreateGroupedView(string groupPropertyName)
-    {
-        var viewSource = new CollectionViewSource { Source = Source };
-        var view = viewSource.View;
-
-        view.GroupDescriptions.Add(
-            new PropertyGroupDescription(groupPropertyName)
-        );
-
-        return view;
-    }
-
-    public void Add(Member item) => Source.Add(item);
-    public void Remove(Member? item) { if (item is not null) Source.Remove(item); }
-    public void Clear() => Source.Clear();
 }
 ```
 
@@ -67,26 +91,38 @@ public sealed class MemberCollectionService
 
 ```csharp
 // Interface definition (uses pure BCL types only)
-namespace MyApp.Services;
+using System.Collections;
 
-public interface IMemberCollectionService
+namespace MyApp.Services
 {
-    IEnumerable CreateView(Predicate<object>? filter = null);
-    void Add(Member member);
-    void Remove(Member? member);
-    void Clear();
+    public interface IMemberCollectionService
+    {
+        IEnumerable CreateView(Predicate<object> filter = null);
+        void Add(Member member);
+        void Remove(Member member);
+        void Clear();
+    }
 }
 
-// DI container registration
-services.AddSingleton<IMemberCollectionService, MemberCollectionService>();
+// DI container registration (optional; constructor injection also works without a container)
+// services.AddSingleton<IMemberCollectionService, MemberCollectionService>();
 
 // ViewModel constructor injection
-namespace MyApp.ViewModels;
+using System.Collections;
+using MyApp.Mvvm;      // hand-rolled BindableBase
+using MyApp.Services;
 
-public sealed partial class AppViewModel(IMemberCollectionService memberService)
-    : ObservableObject
+namespace MyApp.ViewModels
 {
-    public IEnumerable? Members { get; } = memberService.CreateView();
+    public sealed class AppViewModel : BindableBase
+    {
+        public IEnumerable Members { get; private set; }
+
+        public AppViewModel(IMemberCollectionService memberService)
+        {
+            Members = memberService.CreateView();
+        }
+    }
 }
 ```
 

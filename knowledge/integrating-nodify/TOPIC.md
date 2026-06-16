@@ -43,45 +43,91 @@ xmlns:nodify="https://miroiu.github.io/nodify"
 ### ConnectorViewModel
 
 ```csharp
-namespace MyApp.ViewModels;
-
-public sealed partial class ConnectorViewModel : ObservableObject
+namespace MyApp.ViewModels
 {
-    [ObservableProperty] private Point _anchor;
-    [ObservableProperty] private bool _isConnected;
-    [ObservableProperty] private string _title = string.Empty;
+    using System.Windows;
+    using MyApp.Mvvm;
+
+    public sealed class ConnectorViewModel : BindableBase
+    {
+        private Point _anchor;
+        public Point Anchor
+        {
+            get { return _anchor; }
+            set { SetProperty(ref _anchor, value); }
+        }
+
+        private bool _isConnected;
+        public bool IsConnected
+        {
+            get { return _isConnected; }
+            set { SetProperty(ref _isConnected, value); }
+        }
+
+        private string _title = string.Empty;
+        public string Title
+        {
+            get { return _title; }
+            set { SetProperty(ref _title, value); }
+        }
+    }
 }
 ```
 
 ### NodeViewModel
 
 ```csharp
-namespace MyApp.ViewModels;
-
-public sealed partial class NodeViewModel : ObservableObject
+namespace MyApp.ViewModels
 {
-    [ObservableProperty] private string _title = string.Empty;
-    [ObservableProperty] private Point _location;
+    using System.Collections.ObjectModel;
+    using System.Windows;
+    using MyApp.Mvvm;
 
-    public ObservableCollection<ConnectorViewModel> Input { get; } = [];
-    public ObservableCollection<ConnectorViewModel> Output { get; } = [];
+    public sealed class NodeViewModel : BindableBase
+    {
+        private string _title = string.Empty;
+        public string Title
+        {
+            get { return _title; }
+            set { SetProperty(ref _title, value); }
+        }
+
+        private Point _location;
+        public Point Location
+        {
+            get { return _location; }
+            set { SetProperty(ref _location, value); }
+        }
+
+        public ObservableCollection<ConnectorViewModel> Input { get; } =
+            new ObservableCollection<ConnectorViewModel>();
+        public ObservableCollection<ConnectorViewModel> Output { get; } =
+            new ObservableCollection<ConnectorViewModel>();
+    }
 }
 ```
 
 ### ConnectionViewModel
 
 ```csharp
-namespace MyApp.ViewModels;
-
-public sealed class ConnectionViewModel(ConnectorViewModel source, ConnectorViewModel target)
+namespace MyApp.ViewModels
 {
-    public ConnectorViewModel Source { get; } = source;
-    public ConnectorViewModel Target { get; } = target;
-
-    public void SetConnected(bool value)
+    public sealed class ConnectionViewModel
     {
-        Source.IsConnected = value;
-        Target.IsConnected = value;
+        public ConnectionViewModel(ConnectorViewModel source, ConnectorViewModel target)
+        {
+            Source = source;
+            Target = target;
+        }
+
+        public ConnectorViewModel Source { get; }
+        public ConnectorViewModel Target { get; }
+
+        public void SetConnected(bool value)
+        {
+            Source.IsConnected = value;
+            Target.IsConnected = value;
+        }
     }
 }
 ```
@@ -89,66 +135,80 @@ public sealed class ConnectionViewModel(ConnectorViewModel source, ConnectorView
 ### PendingConnectionViewModel
 
 ```csharp
-namespace MyApp.ViewModels;
-
-public sealed class PendingConnectionViewModel
+namespace MyApp.ViewModels
 {
-    private readonly EditorViewModel _editor;
-    private ConnectorViewModel? _source;
+    using System.Windows.Input;
+    using MyApp.Mvvm;
 
-    public PendingConnectionViewModel(EditorViewModel editor)
+    public sealed class PendingConnectionViewModel
     {
-        _editor = editor;
-        StartCommand = new RelayCommand<ConnectorViewModel>(source => _source = source);
-        FinishCommand = new RelayCommand<ConnectorViewModel>(target =>
-        {
-            if (target is not null && _source is not null)
-                _editor.Connect(_source, target);
-        });
-    }
+        private readonly EditorViewModel _editor;
+        private ConnectorViewModel _source;
 
-    public IRelayCommand<ConnectorViewModel> StartCommand { get; }
-    public IRelayCommand<ConnectorViewModel> FinishCommand { get; }
+        public PendingConnectionViewModel(EditorViewModel editor)
+        {
+            _editor = editor;
+            StartCommand = new RelayCommand<ConnectorViewModel>(source => _source = source);
+            FinishCommand = new RelayCommand<ConnectorViewModel>(target =>
+            {
+                if (target != null && _source != null)
+                {
+                    _editor.Connect(_source, target);
+                }
+            });
+        }
+
+        public ICommand StartCommand { get; }
+        public ICommand FinishCommand { get; }
+    }
 }
 ```
 
 ### EditorViewModel
 
 ```csharp
-namespace MyApp.ViewModels;
-
-public sealed partial class EditorViewModel : ObservableObject
+namespace MyApp.ViewModels
 {
-    public ObservableCollection<NodeViewModel> Nodes { get; } = [];
-    public ObservableCollection<ConnectionViewModel> Connections { get; } = [];
-    public PendingConnectionViewModel PendingConnection { get; }
+    using System.Collections.ObjectModel;
+    using System.Linq;
+    using System.Windows.Input;
+    using MyApp.Mvvm;
 
-    public EditorViewModel()
+    public sealed class EditorViewModel : BindableBase
     {
-        PendingConnection = new PendingConnectionViewModel(this);
-        DisconnectConnectorCommand = new RelayCommand<ConnectorViewModel>(Disconnect);
-    }
+        public ObservableCollection<NodeViewModel> Nodes { get; } =
+            new ObservableCollection<NodeViewModel>();
+        public ObservableCollection<ConnectionViewModel> Connections { get; } =
+            new ObservableCollection<ConnectionViewModel>();
+        public PendingConnectionViewModel PendingConnection { get; }
 
-    public IRelayCommand<ConnectorViewModel> DisconnectConnectorCommand { get; }
+        public EditorViewModel()
+        {
+            PendingConnection = new PendingConnectionViewModel(this);
+            DisconnectConnectorCommand = new RelayCommand<ConnectorViewModel>(Disconnect);
+        }
 
-    public void Connect(ConnectorViewModel source, ConnectorViewModel target)
-    {
-        var connection = new ConnectionViewModel(source, target);
-        connection.SetConnected(true);
-        Connections.Add(connection);
-    }
+        public ICommand DisconnectConnectorCommand { get; }
 
-    private void Disconnect(ConnectorViewModel? connector)
-    {
-        if (connector is null) return;
+        public void Connect(ConnectorViewModel source, ConnectorViewModel target)
+        {
+            var connection = new ConnectionViewModel(source, target);
+            connection.SetConnected(true);
+            Connections.Add(connection);
+        }
 
-        var connection = Connections.FirstOrDefault(
-            c => c.Source == connector || c.Target == connector);
+        private void Disconnect(ConnectorViewModel connector)
+        {
+            if (connector == null) return;
 
-        if (connection is null) return;
+            var connection = Connections.FirstOrDefault(
+                c => c.Source == connector || c.Target == connector);
 
-        connection.SetConnected(false);
-        Connections.Remove(connection);
+            if (connection == null) return;
+
+            connection.SetConnected(false);
+            Connections.Remove(connection);
+        }
     }
 }
 ```

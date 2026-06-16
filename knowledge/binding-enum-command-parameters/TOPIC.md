@@ -2,8 +2,11 @@
 
 > Binds enum values to WPF CommandParameter using x:Static markup extension. Use when passing enum types to commands or avoiding string-based command parameter errors.
 
-> **MVVM Framework Rule**: `.claude/rules/dotnet/wpf/mvvm-framework.md` 설정에 따라 코드 스타일이 결정됩니다.
-> Prism 9 사용 시 → [PRISM.md](PRISM.md) 참조
+> **net472/no-CTK note (this fork):** the `x:Static` enum-binding technique is the
+> subject and is framework-independent. The ViewModel uses the hand-rolled
+> `BindableBase`/`RelayCommand<T>` (no CommunityToolkit.Mvvm) and C# 7.3-safe
+> syntax. The fork's MVVM standard is `implementing-handrolled-mvvm`.
+> Prism 사용 시 → [PRISM.md](PRISM.md) 참조
 
 ## Problem Scenario
 
@@ -43,6 +46,9 @@ xmlns:viewmodels="clr-namespace:MyApp.ViewModels;assembly=MyApp.ViewModels"
 
 ### ViewModel (C#)
 ```csharp
+using System.Windows.Input;
+using MyApp.Mvvm; // hand-rolled BindableBase / RelayCommand<T>
+
 public enum ViewerTool
 {
     None,
@@ -51,11 +57,24 @@ public enum ViewerTool
     WindowLevel
 }
 
-public partial class ViewerViewModel : ObservableObject
+public sealed class ViewerViewModel : BindableBase
 {
-    [ObservableProperty] private ViewerTool _currentTool = ViewerTool.Pan;
+    public ViewerViewModel()
+    {
+        // RelayCommand<T> casts the parameter to T (ViewerTool here),
+        // so x:Static passes the enum value directly with no string conversion.
+        SelectToolCommand = new RelayCommand<ViewerTool>(SelectTool);
+    }
 
-    [RelayCommand]
+    private ViewerTool _currentTool = ViewerTool.Pan;
+    public ViewerTool CurrentTool
+    {
+        get { return _currentTool; }
+        set { SetProperty(ref _currentTool, value); }
+    }
+
+    public ICommand SelectToolCommand { get; }
+
     private void SelectTool(ViewerTool tool)
     {
         CurrentTool = tool;

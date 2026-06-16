@@ -25,25 +25,56 @@ When displaying collection indices with a slider, **internally using 0-based ind
 ### Add Display Properties to ViewModel
 
 ```csharp
-public partial class ViewerViewModel : ObservableObject
+using System;
+using MyApp.Mvvm; // BindableBase
+
+public sealed class ViewerViewModel : BindableBase
 {
     // Internal index (0-based)
-    [NotifyPropertyChangedFor(nameof(SliceDisplayNumber))]
-    [ObservableProperty] private int _currentSliceIndex;
+    private int _currentSliceIndex;
+    public int CurrentSliceIndex
+    {
+        get { return _currentSliceIndex; }
+        set
+        {
+            if (SetProperty(ref _currentSliceIndex, value))
+            {
+                // Computed property depends on this value
+                RaisePropertyChanged(nameof(SliceDisplayNumber));
+            }
+        }
+    }
 
     // Total count
-    [NotifyPropertyChangedFor(nameof(MaxSliceIndex))]
-    [ObservableProperty] private int _totalSliceCount;
+    private int _totalSliceCount;
+    public int TotalSliceCount
+    {
+        get { return _totalSliceCount; }
+        set
+        {
+            if (SetProperty(ref _totalSliceCount, value))
+            {
+                // Computed property depends on this value
+                RaisePropertyChanged(nameof(MaxSliceIndex));
+            }
+        }
+    }
 
     /// <summary>
     /// Slider Maximum value (0-based index maximum)
     /// </summary>
-    public int MaxSliceIndex => Math.Max(0, TotalSliceCount - 1);
+    public int MaxSliceIndex
+    {
+        get { return Math.Max(0, TotalSliceCount - 1); }
+    }
 
     /// <summary>
     /// User display number (1-based)
     /// </summary>
-    public int SliceDisplayNumber => CurrentSliceIndex + 1;
+    public int SliceDisplayNumber
+    {
+        get { return CurrentSliceIndex + 1; }
+    }
 }
 ```
 
@@ -86,18 +117,39 @@ public partial class ViewerViewModel : ObservableObject
 
 ---
 
-## Using NotifyPropertyChangedFor
+## Notifying Computed Properties (Hand-Rolled)
 
-The `[NotifyPropertyChangedFor]` attribute automatically raises `PropertyChanged` for computed properties when the source property changes.
+With hand-rolled MVVM there is no source generator and no `[NotifyPropertyChangedFor]`
+attribute. Instead, when `SetProperty` returns `true`, manually call
+`RaisePropertyChanged(nameof(...))` for each computed property that depends on the
+changed backing field.
 
 ```csharp
-// When CurrentSliceIndex changes, SliceDisplayNumber also raises PropertyChanged
-[NotifyPropertyChangedFor(nameof(SliceDisplayNumber))]
-[ObservableProperty] private int _currentSliceIndex;
+// When CurrentSliceIndex changes, also notify SliceDisplayNumber
+public int CurrentSliceIndex
+{
+    get { return _currentSliceIndex; }
+    set
+    {
+        if (SetProperty(ref _currentSliceIndex, value))
+        {
+            RaisePropertyChanged(nameof(SliceDisplayNumber));
+        }
+    }
+}
 
-// When TotalSliceCount changes, MaxSliceIndex also raises PropertyChanged
-[NotifyPropertyChangedFor(nameof(MaxSliceIndex))]
-[ObservableProperty] private int _totalSliceCount;
+// When TotalSliceCount changes, also notify MaxSliceIndex
+public int TotalSliceCount
+{
+    get { return _totalSliceCount; }
+    set
+    {
+        if (SetProperty(ref _totalSliceCount, value))
+        {
+            RaisePropertyChanged(nameof(MaxSliceIndex));
+        }
+    }
+}
 ```
 
 ---

@@ -1,16 +1,19 @@
-# WPF ViewModel Unit Testing — Prism 9
+# WPF ViewModel Unit Testing — Prism (opt-in)
 
-> `mvvm-framework.md`에서 Prism 9이 선택된 경우 이 파일을 참조합니다.
-> CommunityToolkit.Mvvm 버전은 [SKILL.md](SKILL.md)를 참조하세요.
+> 프로젝트가 **이미** Prism을 도입한 경우(opt-in)에만 이 파일을 참조합니다.
+> 이 포크의 기본값은 hand-rolled MVVM입니다 → [TOPIC.md](TOPIC.md) 참조
 
-## Differences from CommunityToolkit.Mvvm
+> ⚠️ Prism 9는 .NET 8+ 전용입니다. net472/net48에서는 **Prism 7.2 또는 8.1**을 사용하고
+> 모든 테스트 코드는 C# 7.3 호환으로 작성합니다. Never auto-introduce Prism — opt-in only.
 
-| Item | CommunityToolkit.Mvvm | Prism 9 |
-|------|----------------------|---------|
-| PropertyChanged | `[ObservableProperty]` auto-raises | `SetProperty()` raises |
+## Differences from the hand-rolled default ([TOPIC.md](TOPIC.md))
+
+| Item | Hand-rolled (default) | Prism (opt-in) |
+|------|-----------------------|----------------|
+| PropertyChanged | `SetProperty()` raises | `SetProperty()` raises |
 | Command type | `RelayCommand` | `DelegateCommand` |
-| CanExecute change | `NotifyCanExecuteChangedFor` | `.ObservesProperty()` |
-| Async command | `AsyncRelayCommand` | `AsyncDelegateCommand` |
+| CanExecute change | `CommandManager.RequerySuggested` (assert `CanExecute()`) | `.ObservesProperty()` |
+| Async command | wrap `async Task` in `RelayCommand` | `AsyncDelegateCommand` |
 
 ---
 
@@ -24,7 +27,7 @@ public sealed class UserViewModelTests
     {
         var vm = new UserViewModel();
         var changedProperties = new List<string>();
-        vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
+        vm.PropertyChanged += (s, e) => changedProperties.Add(e.PropertyName);
 
         vm.UserName = "Alice";
 
@@ -67,7 +70,7 @@ public sealed class OrderViewModelTests
         var mockService = Substitute.For<IOrderService>();
         var vm = new OrderViewModel(mockService);
         var canExecuteChanged = false;
-        vm.SaveCommand.CanExecuteChanged += (_, _) => canExecuteChanged = true;
+        vm.SaveCommand.CanExecuteChanged += (s, e) => canExecuteChanged = true;
 
         // ObservesProperty auto-raises CanExecuteChanged
         vm.OrderName = "Test";
@@ -86,13 +89,13 @@ public sealed class DataViewModelTests
     public async Task LoadCommand_Populates_Items()
     {
         var mockService = Substitute.For<IDataService>();
-        mockService.GetAllAsync().Returns(["Item1", "Item2"]);
+        mockService.GetAllAsync().Returns(new List<string> { "Item1", "Item2" });
 
         var vm = new DataViewModel(mockService);
 
         await vm.LoadCommand.Execute();
 
-        vm.Items.Should().HaveCount(2);
+        vm.Items.Should().Contain(new[] { "Item1", "Item2" });
     }
 }
 ```
@@ -114,7 +117,7 @@ public sealed class DetailViewModelTests
             Substitute.For<IRegionNavigationService>(), new Uri("Detail", UriKind.Relative), navParams));
 
         vm.Item.Should().NotBeNull();
-        vm.Item!.Name.Should().Be("Test");
+        vm.Item.Name.Should().Be("Test");
     }
 
     [Fact]

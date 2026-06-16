@@ -2,49 +2,59 @@
 
 > Core concepts: See [SKILL.md](SKILL.md)
 
+> **net472/no-CTK note (this fork):** the layer separation here is the subject;
+> the MVVM/wiring code uses the hand-rolled `BindableBase`/`RelayCommand`
+> (no CommunityToolkit.Mvvm) and C# 7.3-safe syntax (block-scoped namespaces,
+> no records/init/target-typed `new`/nullable reference types). The fork's MVVM
+> standard is `implementing-handrolled-mvvm`.
+
 ## Detailed Layer Descriptions
 
 ### Domain Layer (Pure Domain)
 
 ```csharp
 // Domain/Entities/User.cs
-namespace GameDataTool.Domain.Entities;
-
-public sealed class User
+namespace GameDataTool.Domain.Entities
 {
-    public Guid Id { get; init; }
-    public string Name { get; private set; } = string.Empty;
-    public Email Email { get; private set; } = null!;
-
-    public void UpdateName(string name)
+    public sealed class User
     {
-        // Domain business rule validation
-        if (string.IsNullOrWhiteSpace(name))
-            throw new DomainException("Name is required.");
+        public Guid Id { get; set; }
+        public string Name { get; private set; } = string.Empty;
+        public Email Email { get; private set; }
 
-        Name = name;
+        public void UpdateName(string name)
+        {
+            // Domain business rule validation
+            if (string.IsNullOrWhiteSpace(name))
+                throw new DomainException("Name is required.");
+
+            Name = name;
+        }
     }
 }
 ```
 
 ```csharp
 // Domain/ValueObjects/Email.cs
-namespace GameDataTool.Domain.ValueObjects;
-
-public sealed record Email
+namespace GameDataTool.Domain.ValueObjects
 {
-    public string Value { get; }
-
-    public Email(string value)
+    public sealed class Email
     {
-        if (!IsValid(value))
-            throw new DomainException("Invalid email format.");
+        public string Value { get; private set; }
 
-        Value = value;
+        public Email(string value)
+        {
+            if (!IsValid(value))
+                throw new DomainException("Invalid email format.");
+
+            Value = value;
+        }
+
+        private static bool IsValid(string email)
+        {
+            return !string.IsNullOrWhiteSpace(email) && email.Contains("@");
+        }
     }
-
-    private static bool IsValid(string email) =>
-        !string.IsNullOrWhiteSpace(email) && email.Contains('@');
 }
 ```
 
@@ -52,75 +62,106 @@ public sealed record Email
 
 ```csharp
 // Application/Interfaces/IUserRepository.cs
-namespace GameDataTool.Application.Interfaces;
-
-public interface IUserRepository
+namespace GameDataTool.Application.Interfaces
 {
-    Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default);
-    Task AddAsync(User user, CancellationToken cancellationToken = default);
-    Task UpdateAsync(User user, CancellationToken cancellationToken = default);
+    public interface IUserRepository
+    {
+        Task<User> GetByIdAsync(Guid id, CancellationToken cancellationToken = default(CancellationToken));
+        Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task AddAsync(User user, CancellationToken cancellationToken = default(CancellationToken));
+        Task UpdateAsync(User user, CancellationToken cancellationToken = default(CancellationToken));
+    }
 }
 ```
 
 ```csharp
 // Application/Services/UserService.cs
-namespace GameDataTool.Application.Services;
-
-public sealed class UserService(IUserRepository userRepository)
+namespace GameDataTool.Application.Services
 {
-    private readonly IUserRepository _userRepository = userRepository;
-
-    public async Task<UserDto?> GetUserAsync(Guid id, CancellationToken cancellationToken = default)
+    public sealed class UserService
     {
-        var user = await _userRepository.GetByIdAsync(id, cancellationToken);
-        return user is null ? null : new UserDto(user.Id, user.Name, user.Email.Value);
-    }
+        private readonly IUserRepository _userRepository;
 
-    public async Task UpdateUserNameAsync(Guid id, string newName, CancellationToken cancellationToken = default)
-    {
-        var user = await _userRepository.GetByIdAsync(id, cancellationToken)
-            ?? throw new NotFoundException("User not found.");
+        public UserService(IUserRepository userRepository)
+        {
+            _userRepository = userRepository;
+        }
 
-        user.UpdateName(newName);
-        await _userRepository.UpdateAsync(user, cancellationToken);
+        public async Task<UserDto> GetUserAsync(Guid id, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+            return user == null ? null : new UserDto(user.Id, user.Name, user.Email.Value);
+        }
+
+        public async Task UpdateUserNameAsync(Guid id, string newName, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var user = await _userRepository.GetByIdAsync(id, cancellationToken);
+            if (user == null)
+                throw new NotFoundException("User not found.");
+
+            user.UpdateName(newName);
+            await _userRepository.UpdateAsync(user, cancellationToken);
+        }
     }
 }
 ```
 
 ```csharp
 // Application/DTOs/UserDto.cs
-namespace GameDataTool.Application.DTOs;
+namespace GameDataTool.Application.DTOs
+{
+    public sealed class UserDto
+    {
+        public Guid Id { get; private set; }
+        public string Name { get; private set; }
+        public string Email { get; private set; }
 
-public sealed record UserDto(Guid Id, string Name, string Email);
+        public UserDto(Guid id, string name, string email)
+        {
+            Id = id;
+            Name = name;
+            Email = email;
+        }
+    }
+}
 ```
 
 ### Infrastructure Layer (External System Implementation)
 
 ```csharp
 // Infrastructure/Persistence/UserRepository.cs
-namespace GameDataTool.Infrastructure.Persistence;
-
-public sealed class UserRepository(AppDbContext dbContext) : IUserRepository
+namespace GameDataTool.Infrastructure.Persistence
 {
-    private readonly AppDbContext _dbContext = dbContext;
-
-    public async Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-        await _dbContext.Users.FindAsync([id], cancellationToken);
-
-    public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
-        await _dbContext.Users.ToListAsync(cancellationToken);
-
-    public async Task AddAsync(User user, CancellationToken cancellationToken = default)
+    public sealed class UserRepository : IUserRepository
     {
-        await _dbContext.Users.AddAsync(user, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-    }
+        private readonly AppDbContext _dbContext;
 
-    public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
-    {
-        _dbContext.Users.Update(user);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        public UserRepository(AppDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
+        public async Task<User> GetByIdAsync(Guid id, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return await _dbContext.Users.FindAsync(new object[] { id }, cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<User>> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return await _dbContext.Users.ToListAsync(cancellationToken);
+        }
+
+        public async Task AddAsync(User user, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            await _dbContext.Users.AddAsync(user, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task UpdateAsync(User user, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            _dbContext.Users.Update(user);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 }
 ```
@@ -129,79 +170,114 @@ public sealed class UserRepository(AppDbContext dbContext) : IUserRepository
 
 ```csharp
 // ViewModels/UserViewModel.cs
-namespace GameDataTool.ViewModels;
+using System.Windows.Input;
+using GameDataTool.Mvvm; // hand-rolled BindableBase / RelayCommand<T>
 
-public sealed partial class UserViewModel(UserService userService) : ObservableObject
+namespace GameDataTool.ViewModels
 {
-    private readonly UserService _userService = userService;
-
-    [ObservableProperty] private string _userName = string.Empty;
-    [ObservableProperty] private string _userEmail = string.Empty;
-
-    [RelayCommand]
-    private async Task LoadUserAsync(Guid userId)
+    public sealed class UserViewModel : BindableBase
     {
-        var user = await _userService.GetUserAsync(userId);
-        if (user is null) return;
+        private readonly UserService _userService;
 
-        UserName = user.Name;
-        UserEmail = user.Email;
+        public UserViewModel(UserService userService)
+        {
+            _userService = userService;
+            LoadUserCommand = new RelayCommand<Guid>(
+                async userId => await LoadUserAsync(userId));
+        }
+
+        private string _userName = string.Empty;
+        public string UserName
+        {
+            get { return _userName; }
+            set { SetProperty(ref _userName, value); }
+        }
+
+        private string _userEmail = string.Empty;
+        public string UserEmail
+        {
+            get { return _userEmail; }
+            set { SetProperty(ref _userEmail, value); }
+        }
+
+        public ICommand LoadUserCommand { get; }
+
+        private async Task LoadUserAsync(Guid userId)
+        {
+            var user = await _userService.GetUserAsync(userId);
+            if (user == null) return;
+
+            UserName = user.Name;
+            UserEmail = user.Email;
+        }
     }
 }
 ```
+
+> The async lambda passed to `RelayCommand<Guid>` is `async void` at the
+> delegate boundary (it returns `void`). Keep the awaited work inside a private
+> `async Task` method as shown, and add try/catch in `LoadUserAsync` so faults
+> are not lost. (`AsyncRelayCommand` from CommunityToolkit is not used in this fork.)
 
 ### WpfApp Layer (Composition Root - DI Setup)
 
 ```csharp
 // WpfApp/App.xaml.cs
-namespace GameDataTool.WpfApp;
+// GenericHost (Microsoft.Extensions.Hosting) is optional and runs on net472/net48.
+// It is the DI container only; it does NOT pull in CommunityToolkit.Mvvm.
+using System.Windows;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-public partial class App : Application
+namespace GameDataTool.WpfApp
 {
-    private readonly IHost _host;
-
-    public App()
+    public partial class App : Application
     {
-        _host = Host.CreateDefaultBuilder()
-            .ConfigureServices((context, services) =>
-            {
-                // Domain - No registration needed (pure models)
+        private readonly IHost _host;
 
-                // Application Layer
-                services.AddTransient<UserService>();
-
-                // Infrastructure Layer
-                services.AddDbContext<AppDbContext>();
-                services.AddScoped<IUserRepository, UserRepository>();
-
-                // Presentation Layer
-                services.AddTransient<UserViewModel>();
-                services.AddTransient<MainViewModel>();
-
-                // WPF Services
-                services.AddSingleton<IDialogService, DialogService>();
-                services.AddSingleton<INavigationService, NavigationService>();
-
-                // Views
-                services.AddSingleton<MainWindow>();
-            })
-            .Build();
-    }
-
-    protected override async void OnStartup(StartupEventArgs e)
-    {
-        await _host.StartAsync();
-        _host.Services.GetRequiredService<MainWindow>().Show();
-        base.OnStartup(e);
-    }
-
-    protected override async void OnExit(ExitEventArgs e)
-    {
-        using (_host)
+        public App()
         {
-            await _host.StopAsync();
+            _host = Host.CreateDefaultBuilder()
+                .ConfigureServices((context, services) =>
+                {
+                    // Domain - No registration needed (pure models)
+
+                    // Application Layer
+                    services.AddTransient<UserService>();
+
+                    // Infrastructure Layer
+                    services.AddDbContext<AppDbContext>();
+                    services.AddScoped<IUserRepository, UserRepository>();
+
+                    // Presentation Layer
+                    services.AddTransient<UserViewModel>();
+                    services.AddTransient<MainViewModel>();
+
+                    // WPF Services
+                    services.AddSingleton<IDialogService, DialogService>();
+                    services.AddSingleton<INavigationService, NavigationService>();
+
+                    // Views
+                    services.AddSingleton<MainWindow>();
+                })
+                .Build();
         }
-        base.OnExit(e);
+
+        protected override async void OnStartup(StartupEventArgs e)
+        {
+            await _host.StartAsync();
+            _host.Services.GetRequiredService<MainWindow>().Show();
+            base.OnStartup(e);
+        }
+
+        protected override async void OnExit(ExitEventArgs e)
+        {
+            using (_host)
+            {
+                await _host.StopAsync();
+            }
+            base.OnExit(e);
+        }
     }
 }
 ```

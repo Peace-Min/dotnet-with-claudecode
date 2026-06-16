@@ -21,19 +21,21 @@
 ### 2.1 Custom ValidationRule
 
 ```csharp
-public sealed partial class EmailValidationRule : ValidationRule
+public sealed class EmailValidationRule : ValidationRule
 {
-    [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.IgnoreCase)]
-    private static partial Regex EmailPattern();
+    private static readonly Regex EmailPattern = new Regex(
+        @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public override ValidationResult Validate(object value, CultureInfo cultureInfo)
     {
-        if (value is not string email || string.IsNullOrWhiteSpace(email))
+        var email = value as string;
+        if (email == null || string.IsNullOrWhiteSpace(email))
         {
             return new ValidationResult(false, "Please enter an email address.");
         }
 
-        if (!EmailPattern().IsMatch(email))
+        if (!EmailPattern.IsMatch(email))
         {
             return new ValidationResult(false, "Invalid email format.");
         }
@@ -43,7 +45,8 @@ public sealed partial class EmailValidationRule : ValidationRule
 }
 ```
 
-> **Note**: Uses `GeneratedRegexAttribute` for compile-time regex. See Microsoft Docs for `System.Text.RegularExpressions.GeneratedRegexAttribute`.
+> **Note**: `GeneratedRegexAttribute` (compile-time regex) requires .NET 7+, so
+> this fork uses a `static readonly Regex` with `RegexOptions.Compiled` instead.
 
 ### 2.2 XAML Usage
 
@@ -93,27 +96,44 @@ public sealed partial class EmailValidationRule : ValidationRule
 ### 3.1 Implementation
 
 ```csharp
-public partial class UserViewModel : ObservableObject, IDataErrorInfo
+public sealed class UserViewModel : BindableBase, IDataErrorInfo
 {
-    [ObservableProperty] private string _name = string.Empty;
-    [ObservableProperty] private int _age;
+    private string _name = string.Empty;
+    public string Name
+    {
+        get { return _name; }
+        set { SetProperty(ref _name, value); }
+    }
 
-    public string Error => string.Empty;
+    private int _age;
+    public int Age
+    {
+        get { return _age; }
+        set { SetProperty(ref _age, value); }
+    }
+
+    public string Error { get { return string.Empty; } }
 
     public string this[string columnName]
     {
         get
         {
-            return columnName switch
+            if (columnName == nameof(Name) && string.IsNullOrWhiteSpace(Name))
             {
-                nameof(Name) when string.IsNullOrWhiteSpace(Name) =>
-                    "Please enter a name.",
-                nameof(Name) when Name.Length < 2 =>
-                    "Name must be at least 2 characters.",
-                nameof(Age) when Age < 0 || Age > 150 =>
-                    "Please enter a valid age.",
-                _ => string.Empty
-            };
+                return "Please enter a name.";
+            }
+
+            if (columnName == nameof(Name) && Name.Length < 2)
+            {
+                return "Name must be at least 2 characters.";
+            }
+
+            if (columnName == nameof(Age) && (Age < 0 || Age > 150))
+            {
+                return "Please enter a valid age.";
+            }
+
+            return string.Empty;
         }
     }
 }
@@ -134,22 +154,24 @@ public partial class UserViewModel : ObservableObject, IDataErrorInfo
 ### 4.1 Base Implementation
 
 ```csharp
-public abstract partial class ValidatableViewModelBase : ObservableObject, INotifyDataErrorInfo
+public abstract class ValidatableViewModelBase : BindableBase, INotifyDataErrorInfo
 {
-    private readonly Dictionary<string, List<string>> _errors = [];
+    private readonly Dictionary<string, List<string>> _errors =
+        new Dictionary<string, List<string>>();
 
-    public bool HasErrors => _errors.Count > 0;
+    public bool HasErrors { get { return _errors.Count > 0; } }
 
-    public event EventHandler<DataErrorsChangedEventArgs>? ErrorsChanged;
+    public event EventHandler<DataErrorsChangedEventArgs> ErrorsChanged;
 
-    public IEnumerable GetErrors(string? propertyName)
+    public IEnumerable GetErrors(string propertyName)
     {
         if (string.IsNullOrEmpty(propertyName))
         {
             return _errors.SelectMany(e => e.Value);
         }
 
-        return _errors.TryGetValue(propertyName, out var errors)
+        List<string> errors;
+        return _errors.TryGetValue(propertyName, out errors)
             ? errors
             : Enumerable.Empty<string>();
     }
@@ -158,7 +180,7 @@ public abstract partial class ValidatableViewModelBase : ObservableObject, INoti
     {
         if (!_errors.ContainsKey(propertyName))
         {
-            _errors[propertyName] = [];
+            _errors[propertyName] = new List<string>();
         }
 
         if (!_errors[propertyName].Contains(error))
@@ -188,8 +210,13 @@ public abstract partial class ValidatableViewModelBase : ObservableObject, INoti
 
     private void OnErrorsChanged(string propertyName)
     {
-        ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(propertyName));
-        OnPropertyChanged(nameof(HasErrors));
+        var handler = ErrorsChanged;
+        if (handler != null)
+        {
+            handler(this, new DataErrorsChangedEventArgs(propertyName));
+        }
+
+        RaisePropertyChanged(nameof(HasErrors));
     }
 }
 ```
@@ -197,26 +224,54 @@ public abstract partial class ValidatableViewModelBase : ObservableObject, INoti
 ### 4.2 ViewModel with Validation
 
 ```csharp
-public partial class RegistrationViewModel : ValidatableViewModelBase
+public sealed class RegistrationViewModel : ValidatableViewModelBase
 {
-    [ObservableProperty] private string _email = string.Empty;
-    [ObservableProperty] private string _password = string.Empty;
-    [ObservableProperty] private string _confirmPassword = string.Empty;
-
-    partial void OnEmailChanged(string value)
+    public RegistrationViewModel()
     {
-        ValidateEmail();
+        SubmitCommand = new RelayCommand(Submit, CanSubmit);
     }
 
-    partial void OnPasswordChanged(string value)
+    private string _email = string.Empty;
+    public string Email
     {
-        ValidatePassword();
-        ValidateConfirmPassword();
+        get { return _email; }
+        set
+        {
+            if (SetProperty(ref _email, value))
+            {
+                ValidateEmail();
+                SubmitCommand.RaiseCanExecuteChanged();
+            }
+        }
     }
 
-    partial void OnConfirmPasswordChanged(string value)
+    private string _password = string.Empty;
+    public string Password
     {
-        ValidateConfirmPassword();
+        get { return _password; }
+        set
+        {
+            if (SetProperty(ref _password, value))
+            {
+                ValidatePassword();
+                ValidateConfirmPassword();
+                SubmitCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    private string _confirmPassword = string.Empty;
+    public string ConfirmPassword
+    {
+        get { return _confirmPassword; }
+        set
+        {
+            if (SetProperty(ref _confirmPassword, value))
+            {
+                ValidateConfirmPassword();
+                SubmitCommand.RaiseCanExecuteChanged();
+            }
+        }
     }
 
     private void ValidateEmail()
@@ -258,7 +313,8 @@ public partial class RegistrationViewModel : ValidatableViewModelBase
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanSubmit))]
+    public RelayCommand SubmitCommand { get; }
+
     private void Submit()
     {
         ValidateAll();
@@ -268,7 +324,10 @@ public partial class RegistrationViewModel : ValidatableViewModelBase
         }
     }
 
-    private bool CanSubmit() => !HasErrors && !string.IsNullOrEmpty(Email);
+    private bool CanSubmit()
+    {
+        return !HasErrors && !string.IsNullOrEmpty(Email);
+    }
 
     private void ValidateAll()
     {
@@ -299,29 +358,109 @@ public partial class RegistrationViewModel : ValidatableViewModelBase
 
 ---
 
-## 5. CommunityToolkit.Mvvm Integration
+## 5. DataAnnotations-Based Validation (Hand-Rolled)
 
-CommunityToolkit.Mvvm 8.0+ provides `ObservableValidator`.
+> This fork does NOT use CommunityToolkit.Mvvm's `ObservableValidator`.
+> Instead, drive DataAnnotations attributes through `Validator.TryValidateProperty`
+> on top of the hand-rolled `ValidatableViewModelBase` from section 4.1.
+
+Add two helpers to `ValidatableViewModelBase` (section 4.1) so attribute-based
+validation can reuse the same error store:
 
 ```csharp
-public partial class UserViewModel : ObservableValidator
+// using System.ComponentModel.DataAnnotations;
+
+protected void ValidateProperty(object value, string propertyName)
 {
+    ClearErrors(propertyName);
+
+    var context = new ValidationContext(this) { MemberName = propertyName };
+    var results = new List<ValidationResult>();
+
+    if (!Validator.TryValidateProperty(value, context, results))
+    {
+        foreach (var result in results)
+        {
+            AddError(propertyName, result.ErrorMessage);
+        }
+    }
+}
+
+protected void ValidateAllProperties()
+{
+    var context = new ValidationContext(this);
+    var results = new List<ValidationResult>();
+
+    Validator.TryValidateObject(this, context, results, validateAllProperties: true);
+
+    ClearAllErrors();
+    foreach (var result in results)
+    {
+        foreach (var member in result.MemberNames)
+        {
+            AddError(member, result.ErrorMessage);
+        }
+    }
+}
+```
+
+The ViewModel decorates each full property with DataAnnotations attributes and
+calls `ValidateProperty` from the setter:
+
+```csharp
+public sealed class UserViewModel : ValidatableViewModelBase
+{
+    public UserViewModel()
+    {
+        SubmitCommand = new RelayCommand(Submit);
+    }
+
+    private string _name = string.Empty;
     [Required(ErrorMessage = "Please enter a name.")]
     [MinLength(2, ErrorMessage = "Name must be at least 2 characters.")]
-    [ObservableProperty] private string _name = string.Empty;
+    public string Name
+    {
+        get { return _name; }
+        set
+        {
+            if (SetProperty(ref _name, value))
+            {
+                ValidateProperty(value, nameof(Name));
+            }
+        }
+    }
 
+    private int _age;
     [Required]
     [Range(1, 150, ErrorMessage = "Please enter a valid age.")]
-    [ObservableProperty] private int _age;
+    public int Age
+    {
+        get { return _age; }
+        set
+        {
+            if (SetProperty(ref _age, value))
+            {
+                ValidateProperty(value, nameof(Age));
+            }
+        }
+    }
 
+    private string _email = string.Empty;
     [EmailAddress(ErrorMessage = "Invalid email format.")]
-    [ObservableProperty] private string _email = string.Empty;
+    public string Email
+    {
+        get { return _email; }
+        set
+        {
+            if (SetProperty(ref _email, value))
+            {
+                ValidateProperty(value, nameof(Email));
+            }
+        }
+    }
 
-    partial void OnNameChanged(string value) => ValidateProperty(value, nameof(Name));
-    partial void OnAgeChanged(int value) => ValidateProperty(value, nameof(Age));
-    partial void OnEmailChanged(string value) => ValidateProperty(value, nameof(Email));
+    public RelayCommand SubmitCommand { get; }
 
-    [RelayCommand]
     private void Submit()
     {
         ValidateAllProperties();
@@ -341,7 +480,7 @@ public partial class UserViewModel : ObservableValidator
 |-------------|---------------------|
 | Simple XAML validation | ValidationRule |
 | ViewModel-based validation | INotifyDataErrorInfo |
-| DataAnnotations usage | ObservableValidator (CommunityToolkit) |
+| DataAnnotations usage | INotifyDataErrorInfo + `Validator.TryValidateProperty` |
 | Async validation | INotifyDataErrorInfo |
 | Legacy compatibility | IDataErrorInfo |
 | Complex business rules | FluentValidation (`validating-with-fluentvalidation` skill) |

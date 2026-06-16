@@ -142,38 +142,51 @@ public partial class MainWindow : Window
 
 ```csharp
 // ViewModels/MainViewModel.cs
-namespace MyApp.ViewModels;
-
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-
-public sealed partial class MainViewModel : ObservableObject
+namespace MyApp.ViewModels
 {
-    private readonly IUserService _userService;
-    private readonly IDialogService _dialogService;
+    using System;
+    using System.Collections.ObjectModel;
+    using System.Threading.Tasks;
+    using System.Windows.Input;
+    using MyApp.Mvvm; // BindableBase, RelayCommand
 
-    // Constructor Injection
-    public MainViewModel(IUserService userService, IDialogService dialogService)
+    public sealed class MainViewModel : BindableBase
     {
-        _userService = userService;
-        _dialogService = dialogService;
+        private readonly IUserService _userService;
+        private readonly IDialogService _dialogService;
 
-        LoadDataAsync();
-    }
-
-    [ObservableProperty] private ObservableCollection<User> _users = [];
-
-    [RelayCommand]
-    private async Task LoadDataAsync()
-    {
-        try
+        // Constructor Injection
+        public MainViewModel(IUserService userService, IDialogService dialogService)
         {
-            var userList = await _userService.GetAllUsersAsync();
-            Users = new ObservableCollection<User>(userList);
+            _userService = userService;
+            _dialogService = dialogService;
+
+            LoadDataCommand = new RelayCommand(async () => await LoadDataAsync());
+
+            // Fire-and-forget initial load
+            _ = LoadDataAsync();
         }
-        catch (Exception ex)
+
+        private ObservableCollection<User> _users = new ObservableCollection<User>();
+        public ObservableCollection<User> Users
         {
-            await _dialogService.ShowErrorAsync("Error occurred", ex.Message);
+            get { return _users; }
+            set { SetProperty(ref _users, value); }
+        }
+
+        public ICommand LoadDataCommand { get; }
+
+        private async Task LoadDataAsync()
+        {
+            try
+            {
+                var userList = await _userService.GetAllUsersAsync();
+                Users = new ObservableCollection<User>(userList);
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.ShowErrorAsync("Error occurred", ex.Message);
+            }
         }
     }
 }

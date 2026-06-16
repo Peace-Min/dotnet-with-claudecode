@@ -49,12 +49,15 @@ xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCor
 ### ViewModel
 
 ```csharp
-public sealed partial class ChartViewModel : ObservableObject
+using System.Collections.ObjectModel;
+using MyApp.Mvvm; // BindableBase
+
+public sealed class ChartViewModel : BindableBase
 {
     // ✅ ObservableCollection 사용 (List 금지 — 동적 업데이트 불가)
     // ✅ Use ObservableCollection (not List — no dynamic updates)
-    [ObservableProperty] private ObservableCollection<ISeries> _series =
-    [
+    private ObservableCollection<ISeries> _series = new ObservableCollection<ISeries>
+    {
         new LineSeries<double>
         {
             Values = new ObservableCollection<double> { 3, 5, 7, 2, 8 },
@@ -65,17 +68,32 @@ public sealed partial class ChartViewModel : ObservableObject
             Values = new ObservableCollection<double> { 2, 4, 1, 6, 3 },
             Name = "비용"
         }
-    ];
+    };
+    public ObservableCollection<ISeries> Series
+    {
+        get { return _series; }
+        set { SetProperty(ref _series, value); }
+    }
 
-    [ObservableProperty] private Axis[] _xAxes =
-    [
-        new Axis { Name = "월", Labels = ["1월", "2월", "3월", "4월", "5월"] }
-    ];
+    private Axis[] _xAxes =
+    {
+        new Axis { Name = "월", Labels = new[] { "1월", "2월", "3월", "4월", "5월" } }
+    };
+    public Axis[] XAxes
+    {
+        get { return _xAxes; }
+        set { SetProperty(ref _xAxes, value); }
+    }
 
-    [ObservableProperty] private Axis[] _yAxes =
-    [
+    private Axis[] _yAxes =
+    {
         new Axis { Name = "금액 (만원)" }
-    ];
+    };
+    public Axis[] YAxes
+    {
+        get { return _yAxes; }
+        set { SetProperty(ref _yAxes, value); }
+    }
 }
 ```
 
@@ -86,32 +104,46 @@ public sealed partial class ChartViewModel : ObservableObject
 ```
 
 ```csharp
-[ObservableProperty] private ObservableCollection<ISeries> _pieSeries =
-[
-    new PieSeries<double> { Values = [45], Name = "A 제품" },
-    new PieSeries<double> { Values = [30], Name = "B 제품" },
-    new PieSeries<double> { Values = [25], Name = "C 제품" }
-];
+private ObservableCollection<ISeries> _pieSeries = new ObservableCollection<ISeries>
+{
+    new PieSeries<double> { Values = new double[] { 45 }, Name = "A 제품" },
+    new PieSeries<double> { Values = new double[] { 30 }, Name = "B 제품" },
+    new PieSeries<double> { Values = new double[] { 25 }, Name = "C 제품" }
+};
+public ObservableCollection<ISeries> PieSeries
+{
+    get { return _pieSeries; }
+    set { SetProperty(ref _pieSeries, value); }
+}
 ```
 
 ## 4. Real-Time Data Update
 
 ```csharp
-private readonly ObservableCollection<double> _values = [0, 0, 0, 0, 0];
+using System;
+using System.Collections.ObjectModel;
+using System.Windows.Input;
+using MyApp.Mvvm; // BindableBase, RelayCommand
 
-public ObservableCollection<ISeries> Series { get; } = [];
+private readonly ObservableCollection<double> _values =
+    new ObservableCollection<double> { 0, 0, 0, 0, 0 };
+private readonly Random _random = new Random();
+
+public ObservableCollection<ISeries> Series { get; } = new ObservableCollection<ISeries>();
+
+public ICommand AddDataPointCommand { get; }
 
 public ChartViewModel()
 {
     Series.Add(new LineSeries<double> { Values = _values });
+    AddDataPointCommand = new RelayCommand(AddDataPoint);
 }
 
-[RelayCommand]
 private void AddDataPoint()
 {
     // ⚠️ UI 스레드에서 수정해야 함 (Dispatcher 사용)
     // ⚠️ Must modify on UI thread (use Dispatcher)
-    _values.Add(Random.Shared.Next(0, 100));
+    _values.Add(_random.Next(0, 100));
 
     if (_values.Count > 50)
     {

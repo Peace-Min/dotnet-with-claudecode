@@ -1,8 +1,15 @@
 # WPF ViewModel Unit Testing
 
-> Implements xUnit unit tests for WPF ViewModels with CommunityToolkit.Mvvm. Covers PropertyChanged verification, RelayCommand testing, CanExecute logic, and service mocking with NSubstitute. Use when writing ViewModel tests or setting up a test project for WPF MVVM.
+> Implements xUnit unit tests for WPF ViewModels built with hand-rolled MVVM (BindableBase + RelayCommand, no CommunityToolkit.Mvvm). Covers PropertyChanged verification, RelayCommand testing, CanExecute logic, and service mocking with NSubstitute. Use when writing ViewModel tests or setting up a test project for WPF MVVM.
 
-Unit test patterns for WPF ViewModels using xUnit and CommunityToolkit.Mvvm.
+Unit test patterns for WPF ViewModels using xUnit and the hand-rolled
+`BindableBase`/`RelayCommand` MVVM (no CommunityToolkit.Mvvm).
+
+> **net472/no-CTK note (this fork):** the testing technique is the subject. The
+> ViewModels under test use the hand-rolled `BindableBase`/`RelayCommand`
+> (the fork's standard is `implementing-handrolled-mvvm`), and all test code is
+> C# 7.3-safe. Do NOT use CommunityToolkit.Mvvm's `AsyncRelayCommand.IsRunning`
+> or `ExecuteAsync` — the hand-rolled command exposes neither.
 
 > For inventory-driven **governance** of these tests (classification, naming, coverage tracking), see the [`managing-unit-tests`](../managing-unit-tests/SKILL.md) skill.
 
@@ -77,7 +84,6 @@ Omit a region entirely if no cases exist for it — never leave an empty region.
 ## 1. PropertyChanged Verification
 
 ```csharp
-using CommunityToolkit.Mvvm.ComponentModel;
 using FluentAssertions;
 
 public sealed class UserViewModelTests
@@ -88,7 +94,7 @@ public sealed class UserViewModelTests
         // Arrange
         var vm = new UserViewModel();
         var changedProperties = new List<string>();
-        vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName!);
+        vm.PropertyChanged += (_, e) => changedProperties.Add(e.PropertyName);
 
         // Act
         vm.UserName = "Alice";
@@ -102,7 +108,7 @@ public sealed class UserViewModelTests
     {
         var vm = new UserViewModel { UserName = "Alice" };
         var raised = false;
-        vm.PropertyChanged += (_, _) => raised = true;
+        vm.PropertyChanged += (s, e) => raised = true;
 
         vm.UserName = "Alice";
 
@@ -139,63 +145,118 @@ public sealed class OrderViewModelTests
 }
 ```
 
-## 3. AsyncRelayCommand Testing
+## 3. Async Command Testing (hand-rolled)
+
+The hand-rolled `RelayCommand` has no `ExecuteAsync`/`IsRunning`. Expose the async
+work through a public `Task`-returning method that the command wraps, and surface
+busy state via an `IsLoading` property on the ViewModel. Tests call the method
+directly (cleaner than `ICommand.Execute`, which is `async void` for an async body).
+
+```csharp
+public sealed class DataViewModel : BindableBase
+{
+    private readonly IDataService _service;
+
+    public DataViewModel(IDataService service)
+    {
+        _service = service;
+        LoadCommand = new RelayCommand(async () => await LoadAsync(), () => !IsLoading);
+    }
+
+    public ObservableCollection<string> Items { get; } = new ObservableCollection<string>();
+
+    private bool _isLoading;
+    public bool IsLoading
+    {
+        get { return _isLoading; }
+        private set { SetProperty(ref _isLoading, value); }
+    }
+
+    public ICommand LoadCommand { get; }
+
+    // Public Task-returning method so tests can await it deterministically.
+    public async Task LoadAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            var items = await _service.GetAllAsync();
+            Items.Clear();
+            foreach (var item in items)
+                Items.Add(item);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}
+```
 
 ```csharp
 public sealed class DataViewModelTests
 {
     [Fact]
-    public async Task LoadCommand_Populates_Items()
+    public async Task LoadAsync_Populates_Items()
     {
         var mockService = Substitute.For<IDataService>();
-        mockService.GetAllAsync().Returns(["Item1", "Item2"]);
+        mockService.GetAllAsync().Returns(new List<string> { "Item1", "Item2" });
 
         var vm = new DataViewModel(mockService);
 
-        await vm.LoadCommand.ExecuteAsync(null);
+        await vm.LoadAsync();
 
-        vm.Items.Should().HaveCount(2);
-        vm.Items.Should().Contain("Item1");
+        vm.Items.Should().Contain(new[] { "Item1", "Item2" });
     }
 
     [Fact]
-    public async Task LoadCommand_Sets_IsLoading_During_Execution()
+    public async Task LoadAsync_Sets_IsLoading_During_Execution()
     {
         var tcs = new TaskCompletionSource<List<string>>();
         var mockService = Substitute.For<IDataService>();
         mockService.GetAllAsync().Returns(tcs.Task);
 
         var vm = new DataViewModel(mockService);
-        var loadTask = vm.LoadCommand.ExecuteAsync(null);
+        var loadTask = vm.LoadAsync();
 
-        vm.LoadCommand.IsRunning.Should().BeTrue();
+        vm.IsLoading.Should().BeTrue();
 
-        tcs.SetResult(["Item1"]);
+        tcs.SetResult(new List<string> { "Item1" });
         await loadTask;
 
-        vm.LoadCommand.IsRunning.Should().BeFalse();
+        vm.IsLoading.Should().BeFalse();
     }
 }
 ```
 
-## 4. NotifyCanExecuteChangedFor Testing
+## 4. CanExecute Re-evaluation Testing (hand-rolled)
+
+The hand-rolled `RelayCommand.CanExecuteChanged` forwards to
+`CommandManager.RequerySuggested`, which the WPF dispatcher raises during idle —
+**not** synchronously from a property setter. So asserting on a
+`CanExecuteChanged` callback is non-deterministic in a unit test. Instead, assert
+that `CanExecute()` itself flips after the dependent property changes — that is
+the behavior users actually care about.
 
 ```csharp
 public sealed class FormViewModelTests
 {
     [Fact]
-    public void Changing_Email_Raises_SubmitCommand_CanExecuteChanged()
+    public void SubmitCommand_CanExecute_Becomes_True_After_Email_Set()
     {
         var vm = new FormViewModel();
-        var canExecuteChanged = false;
-        vm.SubmitCommand.CanExecuteChanged += (_, _) => canExecuteChanged = true;
+        vm.SubmitCommand.CanExecute(null).Should().BeFalse();
 
         vm.Email = "test@example.com";
 
-        canExecuteChanged.Should().BeTrue();
+        vm.SubmitCommand.CanExecute(null).Should().BeTrue();
     }
 }
 ```
+
+> If a ViewModel needs to force a requery immediately (e.g. for a manual button
+> refresh), expose a setter that calls `RaiseCanExecuteChanged()` on the command;
+> the test can then assert the `CanExecute(null)` transition as above.
 
 ## 5. Service Mocking with NSubstitute
 

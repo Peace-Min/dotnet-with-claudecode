@@ -1,6 +1,6 @@
 # ErrorOr Result Pattern Guide
 
-> Implements ErrorOr result pattern for service layer error handling in WPF MVVM. Use when returning errors from services instead of throwing exceptions, or integrating ErrorOr with FluentValidation and CommunityToolkit.Mvvm.
+> Implements ErrorOr result pattern for service layer error handling in WPF MVVM. Use when returning errors from services instead of throwing exceptions, or integrating ErrorOr with FluentValidation and hand-rolled MVVM.
 
 ErrorOr 2.x 기반 서비스 레이어 에러 처리 가이드.
 
@@ -48,15 +48,43 @@ public sealed class UserService(IUserRepository repository)
 ### ViewModel (Match/Switch)
 
 ```csharp
-public sealed partial class UserViewModel : ObservableObject
+using System.Linq;
+using System.Windows.Input;
+using MyApp.Mvvm; // BindableBase, RelayCommand<T>
+
+public sealed class UserViewModel : BindableBase
 {
     private readonly UserService _userService;
 
-    [ObservableProperty] private string _name = string.Empty;
-    [ObservableProperty] private string _errorMessage = string.Empty;
-    [ObservableProperty] private bool _hasError;
+    public UserViewModel(UserService userService)
+    {
+        _userService = userService;
+        LoadUserCommand = new RelayCommand<int>(LoadUser);
+    }
 
-    [RelayCommand]
+    private string _name = string.Empty;
+    public string Name
+    {
+        get { return _name; }
+        set { SetProperty(ref _name, value); }
+    }
+
+    private string _errorMessage = string.Empty;
+    public string ErrorMessage
+    {
+        get { return _errorMessage; }
+        set { SetProperty(ref _errorMessage, value); }
+    }
+
+    private bool _hasError;
+    public bool HasError
+    {
+        get { return _hasError; }
+        set { SetProperty(ref _hasError, value); }
+    }
+
+    public ICommand LoadUserCommand { get; }
+
     private void LoadUser(int userId)
     {
         _userService.GetUser(userId).Switch(

@@ -159,7 +159,10 @@ public partial class HomePage : Page, INavigableView<HomeViewModel>
 ```csharp
 // ViewModel에서 INavigationService 주입
 // Inject INavigationService in ViewModel
-[RelayCommand]
+// 명령은 생성자에서 만든다: NavigateToSettingsCommand = new RelayCommand(NavigateToSettings);
+// Build the command in the constructor: NavigateToSettingsCommand = new RelayCommand(NavigateToSettings);
+public ICommand NavigateToSettingsCommand { get; }
+
 private void NavigateToSettings()
 {
     _navigationService.Navigate(typeof(SettingsPage));
@@ -225,26 +228,42 @@ ApplicationThemeManager.Apply(ApplicationTheme.Light);
 ApplicationThemeManager.ApplySystemTheme();
 ```
 
-## 7. CommunityToolkit.Mvvm 통합
+## 7. Hand-Rolled MVVM 통합
 
-WPF-UI는 CommunityToolkit.Mvvm과 자연스럽게 통합됩니다:
+WPF-UI는 ViewModel의 MVVM 구현 방식과 무관하게 동작합니다. 이 fork는
+CommunityToolkit.Mvvm을 사용하지 **않고**, 의존성 없는 hand-rolled
+`BindableBase` / `RelayCommand`로 통합합니다.
+WPF-UI works regardless of how the ViewModel implements MVVM. This fork does
+**not** use CommunityToolkit.Mvvm; it integrates with the dependency-free
+hand-rolled `BindableBase` / `RelayCommand`.
 
 ```csharp
-public sealed partial class HomeViewModel : ObservableObject
+using System;
+using System.Windows.Input;
+using MyApp.Mvvm; // BindableBase, RelayCommand
+
+public sealed class HomeViewModel : BindableBase
 {
     private readonly ISnackbarService _snackbarService;
 
     public HomeViewModel(ISnackbarService snackbarService)
     {
         _snackbarService = snackbarService;
+        SearchCommand = new RelayCommand(Search);
     }
 
-    [ObservableProperty] private string _searchText = string.Empty;
+    private string _searchText = string.Empty;
+    public string SearchText
+    {
+        get { return _searchText; }
+        set { SetProperty(ref _searchText, value); }
+    }
 
-    [RelayCommand]
+    public ICommand SearchCommand { get; }
+
     private void Search()
     {
-        _snackbarService.Show("검색", $"'{SearchText}' 검색 중...",
+        _snackbarService.Show("검색", "'" + SearchText + "' 검색 중...",
             ControlAppearance.Info, null, TimeSpan.FromSeconds(2));
     }
 }
