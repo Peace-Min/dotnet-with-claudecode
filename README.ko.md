@@ -14,28 +14,40 @@ Claude Code를 활용한 .NET 개발 튜토리얼
 
 WPF 개발을 위한 Claude Code 플러그인.
 
-## 요구사항
+## 요구사항 (폐쇄망 PC)
 
-- Claude Code CLI
-- .NET SDK 10.0.300 이상 (wpf-net472-airgap-dev-pack 훅 실행용)
-- wpf-net472-airgap-dev-pack 필수 Claude Code 플러그인:
-  - [context7](https://github.com/upstash/context7)
-  - [microsoft-docs](https://github.com/MicrosoftDocs/mcp)
-  - [csharp-lsp](https://github.com/razzmatazz/csharp-language-server)
-- wpf-net472-airgap-dev-pack 필수 MCP:
-  - [serena](https://github.com/oraios/serena) — **Claude Code 플러그인이 아니라 `uv`를 통해 MCP 서버로 직접 설치**해야 합니다. Serena를 플러그인 경로로 등록하면 Claude Code 내장 도구 description이 ~16k 토큰을 차지하면서 모델이 Serena 도구를 사용하지 않는 강한 편향이 생깁니다. 자세한 이유는 [Serena Claude Code 문서의 Attention 안내](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code)를 참고하고, 설치는 [Quick Start](https://github.com/oraios/serena#quick-start)를 따르세요.
+- **Claude Code**
+- **.NET 10 RTM SDK (10.0.300+)** — C# 훅 실행 + 로컬 MCP 빌드 (preview SDK는 기동 시 크래시하는 MCP 바이너리를 만듭니다)
+- **NuGet 접근** — 부트스트랩 시 도구 벤더링용 승인된 내부 피드(또는 nuget.org 1회). 부트스트랩 후 *런타임* 해석은 없음
+- **Visual Studio MSBuild** — 대상 net472/net48 솔루션 빌드용
 
-## 설치
+`wpf-net472-airgap-dev-pack`은 **오프라인**입니다: 자체 MCP 서버
+(`WpfDevPackMcp`, `HandMirrorMcp`)를 동봉하며 **온라인 MCP가 필요 없습니다** —
+`context7`·`microsoft-docs`/Microsoft Learn은 **사용하지 않습니다**. `serena`·
+`csharp-lsp`는 *선택적* 로컬 도구입니다.
 
-### wpf-net472-airgap-dev-pack 설치
+## 빠른 시작 (폐쇄망)
 
 ```bash
-# 1단계: 마켓플레이스 추가 (최초 1회)
-/plugin marketplace add Peace-Min/dotnet-with-claudecode
+git clone <내부미러>/dotnet-with-claudecode.git   # 또는 Peace-Min/dotnet-with-claudecode
+cd dotnet-with-claudecode
+pwsh ./setup.ps1            # 1회: bin/(MCP 서버 + XamlStyler) 빌드 + 지식 경로 설정
+claude --plugin-dir ./wpf-net472-airgap-dev-pack
+```
 
-# 2단계: 플러그인 설치
+git은 clone 시 스크립트를 자동 실행하지 않으므로 `setup.ps1`이 유일한 부트스트랩
+단계입니다. 런타임은 전부 로컬/오프라인 — `dnx`·NuGet 해석·`git pull` 없음.
+
+전체 문서: [`wpf-net472-airgap-dev-pack/README.ko.md`](./wpf-net472-airgap-dev-pack/README.ko.md).
+
+### 대안: 로컬 마켓플레이스로 설치
+
+```bash
+/plugin marketplace add Peace-Min/dotnet-with-claudecode
 /plugin install wpf-net472-airgap-dev-pack@dotnet-net472-airgap-plugins
 ```
+
+(폐쇄망에서 자동 업데이트는 비활성 유지 — 외부에서 빌드한 번들을 전송해 업데이트)
 
 ## Git Hooks 설정
 

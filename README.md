@@ -14,28 +14,41 @@ This repository provides skills, rules, and agent configurations for .NET/WPF de
 
 Claude Code plugin for WPF development.
 
-## Requirements
+## Requirements (closed-network PC)
 
-- Claude Code CLI
-- .NET SDK 10.0.300+ (for wpf-net472-airgap-dev-pack hooks)
-- Required Claude Code plugins for wpf-net472-airgap-dev-pack:
-  - [context7](https://github.com/upstash/context7)
-  - [microsoft-docs](https://github.com/MicrosoftDocs/mcp)
-  - [csharp-lsp](https://github.com/razzmatazz/csharp-language-server)
-- Required MCPs for wpf-net472-airgap-dev-pack:
-  - [serena](https://github.com/oraios/serena) — install **directly as an MCP server via `uv`, not as a Claude Code plugin**. Claude Code's built-in tool descriptions strongly bias the model away from using Serena's tools when Serena is registered via the plugin path; see the [Attention note in the Serena Claude Code docs](https://oraios.github.io/serena/02-usage/030_clients.html#claude-code) for the rationale, and follow the [Quick Start](https://github.com/oraios/serena#quick-start) for installation.
+- **Claude Code**
+- **.NET 10 RTM SDK (10.0.300+)** — runs the C# hooks and builds the local MCP servers (a *preview* SDK produces MCP binaries that crash at startup)
+- **NuGet access** — an approved internal feed (or nuget.org once) to vendor the tools during bootstrap
+- **Visual Studio MSBuild** — to build the target net472/net48 solutions
 
-## Installation
+`wpf-net472-airgap-dev-pack` is **offline**: it bundles its own MCP servers
+(`WpfDevPackMcp`, `HandMirrorMcp`) and requires **no online MCP** — `context7`
+and `microsoft-docs` / Microsoft Learn are **not used**. `serena` and `csharp-lsp`
+are *optional* local tools.
 
-### Installing wpf-net472-airgap-dev-pack
+## Quick start (closed network)
 
 ```bash
-# Step 1: Add the marketplace (one-time)
-/plugin marketplace add Peace-Min/dotnet-with-claudecode
+git clone <internal-mirror>/dotnet-with-claudecode.git   # or Peace-Min/dotnet-with-claudecode
+cd dotnet-with-claudecode
+pwsh ./setup.ps1            # one-time: builds bin/ (MCP servers + XamlStyler) + configures the knowledge path
+claude --plugin-dir ./wpf-net472-airgap-dev-pack
+```
 
-# Step 2: Install the plugin
+git cannot auto-run a script on clone, so `setup.ps1` is the single bootstrap step.
+At runtime everything is local/offline — no `dnx`, no NuGet resolution, no `git pull`.
+
+Full docs: [`wpf-net472-airgap-dev-pack/README.md`](./wpf-net472-airgap-dev-pack/README.md).
+Status / handoff: [`docs/plans/2026-06-16-net472-airgap-fork-progress.md`](./docs/plans/2026-06-16-net472-airgap-fork-progress.md).
+
+### Alternative: install from the local marketplace
+
+```bash
+/plugin marketplace add Peace-Min/dotnet-with-claudecode
 /plugin install wpf-net472-airgap-dev-pack@dotnet-net472-airgap-plugins
 ```
+
+(Auto-update stays disabled on the closed network — transfer a freshly built bundle to update.)
 
 ## Git Hooks Setup
 
