@@ -5,7 +5,7 @@ color: green
 tools: Read, Glob, Grep, Edit, Write, Bash, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__replace_symbol_body
 skills:
   - implementing-wpf-validation
-  - implementing-communitytoolkit-mvvm
+  - implementing-handrolled-mvvm
   - validating-with-fluentvalidation
   - binding-enum-command-parameters
   - advanced-data-binding

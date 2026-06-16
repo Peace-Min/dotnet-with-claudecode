@@ -260,7 +260,7 @@ wpf-net472-airgap-dev-pack does **not** use a keyword-detection hook. WPF knowle
 | You ask about | Topic |
 |---------------|-------|
 | Authoring a CustomControl | `authoring-wpf-controls` |
-| MVVM with CommunityToolkit | `implementing-communitytoolkit-mvvm` |
+| MVVM with CommunityToolkit | `implementing-handrolled-mvvm` |
 | Rendering with DrawingContext | `rendering-with-drawingcontext` |
 | High-performance rendering | `rendering-wpf-high-performance` |
 

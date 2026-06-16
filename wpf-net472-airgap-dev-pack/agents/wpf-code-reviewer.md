@@ -5,7 +5,7 @@ color: yellow
 tools: Read, Glob, Grep, WebSearch, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__get_symbols_overview, mcp__serena__search_for_pattern, lsp__csharp__textDocument_definition, lsp__csharp__textDocument_references, lsp__csharp__textDocument_documentSymbol, lsp__csharp__textDocument_hover, lsp__csharp__textDocument_diagnostic
 permissionMode: plan
 skills:
-  - implementing-communitytoolkit-mvvm
+  - implementing-handrolled-mvvm
   - structuring-wpf-projects
   - optimizing-wpf-memory
   - virtualizing-wpf-ui

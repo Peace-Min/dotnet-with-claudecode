@@ -238,7 +238,7 @@ wpf-net472-airgap-dev-pack은 키워드 감지 훅을 **사용하지 않습니�
 | 질문 주제 | 토픽 |
 |-----------|------|
 | CustomControl 작성 | `authoring-wpf-controls` |
-| CommunityToolkit MVVM | `implementing-communitytoolkit-mvvm` |
+| CommunityToolkit MVVM | `implementing-handrolled-mvvm` |
 | DrawingContext 렌더링 | `rendering-with-drawingcontext` |
 | 고성능 렌더링 | `rendering-wpf-high-performance` |
 

@@ -4,7 +4,7 @@ description: WPF MVVM pattern implementation expert. Implements ViewModel with C
 color: magenta
 tools: Read, Glob, Grep, Edit, Write, Bash, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__replace_symbol_body, mcp__serena__rename_symbol, mcp__serena__get_symbols_overview
 skills:
-  - implementing-communitytoolkit-mvvm
+  - implementing-handrolled-mvvm
   - managing-wpf-collectionview-mvvm
   - binding-enum-command-parameters
   - implementing-repository-pattern

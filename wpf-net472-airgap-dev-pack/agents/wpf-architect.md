@@ -6,7 +6,7 @@ tools: Read, Glob, Grep, WebSearch, AskUserQuestion, mcp__serena__find_symbol, m
 permissionMode: plan
 skills:
   - structuring-wpf-projects
-  - implementing-communitytoolkit-mvvm
+  - implementing-handrolled-mvvm
   - managing-wpf-collectionview-mvvm
   - configuring-dependency-injection
   - integrating-wpfui-fluent
@@ -119,7 +119,7 @@ AskUserQuestion:
 
 | Selection | Activate Skills | Delegate To |
 |-----------|-----------------|-------------|
-| MVVM + CommunityToolkit | `implementing-communitytoolkit-mvvm`, `structuring-wpf-projects` | `wpf-mvvm-expert` |
+| MVVM + CommunityToolkit | `implementing-handrolled-mvvm`, `structuring-wpf-projects` | `wpf-mvvm-expert` |
 | Code-behind | Basic WPF patterns only | - |
 | Prism | `make-wpf-project --prism` | - |
 | No preference | Analyze complexity, then recommend | - |
@@ -259,7 +259,7 @@ AskUserQuestion:
 
 | Selection | Activate Skills | Agents |
 |-----------|-----------------|--------|
-| 코드 품질 리뷰 | `implementing-communitytoolkit-mvvm`, `structuring-wpf-projects` | `wpf-code-reviewer` |
+| 코드 품질 리뷰 | `implementing-handrolled-mvvm`, `structuring-wpf-projects` | `wpf-code-reviewer` |
 | 성능 분석 | `rendering-wpf-high-performance`, `optimizing-wpf-memory`, `virtualizing-wpf-ui` | `wpf-performance-optimizer` |
 | 아키텍처 진단 | `structuring-wpf-projects`, `configuring-dependency-injection` | `wpf-architect` (self) |
 | 오픈소스 코드 분석 | 대상 코드에서 감지된 기술에 따라 동적 활성화 | `wpf-architect` (self) |
@@ -420,7 +420,7 @@ AskUserQuestion:
 | Selection | Activate Skills | Agents |
 |-----------|-----------------|--------|
 | UI 표시 문제 | ~~`customizing-controltemplate`~~ (archived), `managing-styles-resourcedictionary`, `navigating-visual-logical-tree` | `wpf-xaml-designer` |
-| 데이터 문제 | `advanced-data-binding`, `implementing-wpf-validation`, `implementing-communitytoolkit-mvvm` | `wpf-data-binding-expert` |
+| 데이터 문제 | `advanced-data-binding`, `implementing-wpf-validation`, `implementing-handrolled-mvvm` | `wpf-data-binding-expert` |
 | 성능 문제 | `rendering-wpf-high-performance`, `optimizing-wpf-memory`, `virtualizing-wpf-ui`, `threading-wpf-dispatcher` | `wpf-performance-optimizer` |
 | 크래시/예외 | `managing-wpf-application-lifecycle`, `threading-wpf-dispatcher` | `wpf-code-reviewer` |
 | 빌드/설정 오류 | `configuring-wpf-themeinfo`, `configuring-dependency-injection` | `wpf-code-reviewer` |

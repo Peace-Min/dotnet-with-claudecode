@@ -296,7 +296,7 @@ Do you need to call an async method from UI-thread code?
 |-------|--------------|
 | `shutting-down-wpf-gracefully` | Applies this skill to shutdown scenarios (`OnExit`, `Window.Closing`) |
 | `threading-wpf-dispatcher` | Dispatcher priorities and scheduling |
-| `implementing-communitytoolkit-mvvm` | `[RelayCommand]` usage details |
+| `implementing-handrolled-mvvm` | `[RelayCommand]` usage details |
 
 ---
 

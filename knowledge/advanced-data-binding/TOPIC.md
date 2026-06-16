@@ -233,6 +233,6 @@ public sealed class DebugConverter : IValueConverter
 
 ## 6. Related Skills
 
-- `implementing-communitytoolkit-mvvm` - MVVM pattern basics
+- `implementing-handrolled-mvvm` - MVVM pattern basics
 - `managing-wpf-collectionview-mvvm` - CollectionView binding
 - `mapping-viewmodel-view-datatemplate` - DataTemplate mapping
