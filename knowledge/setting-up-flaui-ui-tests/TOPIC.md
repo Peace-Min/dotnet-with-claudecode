@@ -161,4 +161,3 @@ restyling (`flaui-wpf-element-discovery` covers where the id must go for
 - [`flaui-wpf-element-discovery`](../flaui-wpf-element-discovery/TOPIC.md) — finding the elements once the project runs (AutomationId placement, descendant-depth limits, Shape peers, common dialogs).
 - [`flaui-cross-process-input`](../flaui-cross-process-input/TOPIC.md) — when synthesized input IS required (drag, gestures): SendInput pitfalls, stuck keys, DPI.
 - [`flaui-capture-resize-robustness`](../flaui-capture-resize-robustness/TOPIC.md) — robust screenshots and coordinates under window resize.
-- [`hosting-extensions-ai-chatclient-in-wpf-mvvm`](../hosting-extensions-ai-chatclient-in-wpf-mvvm/TOPIC.md) — the streaming chat surface whose token bursts motivate §4.

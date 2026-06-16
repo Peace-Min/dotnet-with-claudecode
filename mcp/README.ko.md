@@ -122,7 +122,7 @@ npx @modelcontextprotocol/inspector --cli "<exe>" \
 
 npx @modelcontextprotocol/inspector --cli "<exe>" \
   --method tools/call --tool-name get_wpf_topic \
-  --tool-arg id=implementing-communitytoolkit-mvvm --tool-arg variant=prism
+  --tool-arg id=implementing-handrolled-mvvm --tool-arg variant=default
 ```
 
 `stdout` 에는 MCP JSON-RPC 만 흐르고 모든 로그는 `stderr` 로 갑니다. 서버는 `git`

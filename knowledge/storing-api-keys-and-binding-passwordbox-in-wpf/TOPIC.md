@@ -90,4 +90,3 @@ Either way — attached behavior or kit control — the bound value flows into t
 ### Related topics
 
 - [`implementing-wpf-validation`](../implementing-wpf-validation/TOPIC.md) — validating the API-key field as form input
-- [`building-a-provider-settings-panel`](../building-a-provider-settings-panel/TOPIC.md) — the settings panel that hosts the key field

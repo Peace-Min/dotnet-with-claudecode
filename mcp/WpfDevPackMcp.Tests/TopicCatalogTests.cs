@@ -12,7 +12,7 @@ public sealed class TopicCatalogTests : IDisposable
     {
         _root = Path.Combine(Path.GetTempPath(), "wdpmcp-" + Guid.NewGuid().ToString("N"));
         _knowledge = Path.Combine(_root, "knowledge");
-        WriteTopic("implementing-communitytoolkit-mvvm",
+        WriteTopic("implementing-handrolled-mvvm",
             "# CommunityToolkit MVVM\n\n> Implements MVVM using CommunityToolkit.\n\nbody",
             prism: "# Prism variant\n");
         WriteTopic("virtualizing-wpf-ui",
@@ -35,14 +35,14 @@ public sealed class TopicCatalogTests : IDisposable
     {
         var catalog = new TopicCatalog(_root);
         var ids = catalog.List().Select(t => t.Id).ToArray();
-        Assert.Equal(["implementing-communitytoolkit-mvvm", "virtualizing-wpf-ui"], ids);
+        Assert.Equal(["implementing-handrolled-mvvm", "virtualizing-wpf-ui"], ids);
     }
 
     [Fact]
     public void List_PopulatesSummaryFromBlockquote_AndCompanions()
     {
         var catalog = new TopicCatalog(_root);
-        var mvvm = catalog.List().Single(t => t.Id == "implementing-communitytoolkit-mvvm");
+        var mvvm = catalog.List().Single(t => t.Id == "implementing-handrolled-mvvm");
         Assert.Equal("Implements MVVM using CommunityToolkit.", mvvm.Summary);
         Assert.Contains("PRISM.md", mvvm.Companions);
     }
@@ -59,7 +59,7 @@ public sealed class TopicCatalogTests : IDisposable
     public void GetContent_Prism_ReturnsPrismMd()
     {
         var catalog = new TopicCatalog(_root);
-        var content = catalog.GetContent("implementing-communitytoolkit-mvvm", "prism");
+        var content = catalog.GetContent("implementing-handrolled-mvvm", "prism");
         Assert.Contains("# Prism variant", content);
     }
 
@@ -73,7 +73,7 @@ public sealed class TopicCatalogTests : IDisposable
         var catalog = new TopicCatalog(_root);
         var hits = catalog.Search("mvvm", maxResults: 5);
         Assert.NotEmpty(hits);
-        Assert.Equal("implementing-communitytoolkit-mvvm", hits[0].Id);
+        Assert.Equal("implementing-handrolled-mvvm", hits[0].Id);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class TopicCatalogTests : IDisposable
     [Fact]
     public void Variants_ReturnsPrismAndDefault_WhenPrismExists()
     {
-        var variants = new TopicCatalog(_root).Variants("implementing-communitytoolkit-mvvm");
+        var variants = new TopicCatalog(_root).Variants("implementing-handrolled-mvvm");
         Assert.Contains("default", variants);
         Assert.Contains("prism", variants);
     }

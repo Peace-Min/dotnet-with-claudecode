@@ -129,7 +129,7 @@ npx @modelcontextprotocol/inspector --cli "<exe>" \
 
 npx @modelcontextprotocol/inspector --cli "<exe>" \
   --method tools/call --tool-name get_wpf_topic \
-  --tool-arg id=implementing-communitytoolkit-mvvm --tool-arg variant=prism
+  --tool-arg id=implementing-handrolled-mvvm --tool-arg variant=default
 ```
 
 `stdout` carries only MCP JSON-RPC; all logs go to `stderr`. The server gives
