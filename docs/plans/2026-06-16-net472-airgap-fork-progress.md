@@ -54,6 +54,12 @@ dependencies) into a private fork for an **air-gapped Windows PC** that develops
 | `20a847e` | #6 Generators | Remove the 5 .NET 10 / Extensions.AI chat skills + routing/README cleanup |
 | `0c38b53` | #6 Generators | make-wpf-viewmodel + make-wpf-project → hand-rolled MVVM + SDK-style net48 (verified builds); Prism variants reframed opt-in/net472 |
 | `4309a56` | #6 Generators | make-wpf-service/usercontrol → hand-rolled; CodeFormatter → vendored xstyler.exe (no dnx); converter-patterns C#-7.3-safe |
+| `270adf6` | #7 Knowledge | Add `implementing-handrolled-mvvm` topic; repoint topic-id refs in agents/README/topics |
+| `02be46a` | #7 Knowledge | Remove the CTK topic + the Extensions.AI/LLM-chat cluster (5 topics); fix dangling refs |
+| `9a82fef` | #7 Knowledge | Add 3 net472 legacy topics; reconcile DI/collectionview topics (61 topics total) |
+| `9630520` | #10 Agents | De-CTK agent bodies (wpf-mvvm-expert full rewrite, data-binding/code-reviewer/architect) + README → hand-rolled |
+| `54c57c2` | Docs | Sync Korean mirrors (README.ko, .claude.ko/CLAUDE.md) + TERMINOLOGY(.ko); version badge 1.0.0 / Peace-Min |
+| `bc468d1` | #8 Docs | Repo-root README offline quick-start; deployment & verification guide |
 
 ### Key mechanism note
 Installed plugins do **not** auto-load `.claude/CLAUDE.md` or `.claude/rules` — only
@@ -83,20 +89,21 @@ hook (`Net472GuardrailsLoader.cs`), mirroring the existing `WpfAuthoringRulesLoa
 - `make-wpf-service` / `make-wpf-usercontrol` de-CTK'd; CodeFormatter uses the vendored `xstyler.exe`.
 - Residual modern-C# in converter/custom-control/behavior examples is corrected at generation time by the `Net472GuardrailsLoader` hook (C# 7.3-safe enforced every session).
 
-### #7 — Knowledge audit + net472 topics
-- Create `implementing-handrolled-mvvm` topic (referenced by MvvmViolationDetector + agents).
-- Reconcile/replace CTK & modern topics (`implementing-communitytoolkit-mvvm`, `hosting-extensions-ai-chatclient-in-wpf-mvvm`, `configuring-dependency-injection`, …).
-- Add legacy topics: non-SDK `.csproj`, `packages.config` offline restore, `app.config` + binding redirects, VS MSBuild discovery (`vswhere`), x86/x64/AnyCPU/`Prefer32Bit`, designer build actions, `Dispatcher`/STA/COM interop/P/Invoke, net472 API availability checks.
+### #7 — Knowledge ✅ DONE (`270adf6`, `02be46a`, `9a82fef`)
+- Created `implementing-handrolled-mvvm`; removed the CTK topic + the Extensions.AI/LLM-chat cluster (5 topics) with ref fixes; added 3 net472 legacy topics (legacy projects, VS-MSBuild build, C# 7.3); reconciled DI/collectionview. 61 topics.
 
-### #8 — Build, transfer bundle (BOM), verification matrix
-- Run `tools/build-local-bin.ps1` on an **RTM 10.0.300+** machine; confirm both MCP servers start after a NuGet/`uv` cache cleanup.
-- Assemble the offline bundle: .NET SDK 10.0.300+, net472/48 Developer Pack, VS Build Tools + `vswhere.exe`, vendored MCP exes, local NuGet folder feed, hashes/versions/licenses manifest.
-- Execute the handoff doc's verification matrix on a network-blocked machine; record evidence.
+### #10 — Agent/README de-CTK ✅ DONE (`9630520`)
+- wpf-mvvm-expert fully rewritten to hand-rolled (C# 7.3); data-binding/code-reviewer/architect de-CTK'd; code-formatter drops the [ObservableProperty] rule + uses xstyler.exe; README highlights/quick-start/tables → hand-rolled.
 
-### Deferred — Korean-mirror docs sync
-English is authoritative. Still to mirror: `README.ko.md` (offline sections), `.claude.ko/CLAUDE.md`
-(MVVM Composition + .NET version + Essential), `docs/TERMINOLOGY.ko.md`. Also a fuller
-`TERMINOLOGY.md` rework (it still frames composition around CTK/Prism paths).
+### Korean mirrors ✅ DONE (`54c57c2`)
+- `README.ko.md`, `.claude.ko/CLAUDE.md`, `docs/TERMINOLOGY(.ko).md` synced to the English net472/hand-rolled/offline source; version badge 1.0.0 / Peace-Min.
+
+### #8 — Bundle + verification ✅ DOC DONE (`bc468d1`)
+- Repo-root README offline quick-start; [deployment & verification guide](2026-06-16-net472-airgap-deployment-guide.md) (prerequisites, BOM, offline NuGet feed, verification checklist, troubleshooting).
+- **Remaining (needs the actual air-gapped machine):** run the blocked-network verification matrix on an RTM 10.0.300+ PC and record evidence (hashes/SBOM/license manifest for the transfer bundle).
+
+### Out of scope (noted)
+- Repo-root `.claude/rules/dotnet/**` are the maintainer's general .NET dev config (inherited from upstream, not shipped in the plugin); they still describe CTK/latest-.NET. Reconciling them is separate from the net472 plugin deliverable.
 
 ---
 
