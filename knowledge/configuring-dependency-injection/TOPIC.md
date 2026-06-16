@@ -2,8 +2,12 @@
 
 > Configures Dependency Injection using Microsoft.Extensions.DependencyInjection and GenericHost. Use when setting up DI container, registering services, or implementing IoC patterns in .NET projects.
 
-> **MVVM Framework Rule**: `.claude/rules/dotnet/wpf/mvvm-framework.md` 설정에 따라 코드 스타일이 결정됩니다.
-> Prism 9 사용 시 → [PRISM.md](PRISM.md) 참조
+> **net472/net48 note (this fork):** a DI framework is **optional and not the
+> default**. The default hand-rolled MVVM constructs ViewModels/services by hand
+> (no container) — see `implementing-handrolled-mvvm`. `Microsoft.Extensions.DependencyInjection`
+> / `.Hosting` do work on net472 (net462 assets), but introduce them only if the
+> project already uses them; never add GenericHost just to register a service.
+> Keep examples C# 7.3-safe (block-scoped namespaces, no nullable refs).
 
 A guide on using Dependency Injection and GenericHost in .NET projects.
 

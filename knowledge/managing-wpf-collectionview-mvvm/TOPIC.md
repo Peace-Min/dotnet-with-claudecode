@@ -2,8 +2,9 @@
 
 > Encapsulates CollectionView in Service Layer to maintain MVVM principles in WPF. Use when implementing filtering, sorting, or grouping while keeping ViewModels free of WPF dependencies.
 
-> **MVVM Framework Rule**: `.claude/rules/dotnet/wpf/mvvm-framework.md` 설정에 따라 코드 스타일이 결정됩니다.
-> Prism 9 사용 시 → [PRISM.md](PRISM.md) 참조
+> **net472/no-CTK note (this fork):** keep the Service-Layer encapsulation pattern,
+> but use the hand-rolled `BindableBase`/`RelayCommand` (no CommunityToolkit) and
+> C# 7.3-safe syntax. The fork's MVVM standard is `implementing-handrolled-mvvm`.
 
 ## Project Structure
 
