@@ -11,22 +11,16 @@ Applies consistent code style to XAML and C# files.
 
 ## 1. Required Tools
 
-### .NET 10 SDK
+### XamlStyler (XAML) — local, vendored
 
-All commands use `dotnet dnx` for cross-platform compatibility (Windows, Linux, macOS).
+XAML is formatted by the locally vendored XamlStyler at
+`${CLAUDE_PLUGIN_ROOT}/bin/XamlStyler/xstyler.exe`, built once by
+`tools/build-local-bin.ps1` / `setup.ps1`. **No `dnx`, no NuGet resolution at
+runtime.** If `bin/XamlStyler/` is missing, run the bootstrap (`setup.ps1`).
 
-```bash
-# Verify .NET 10 is available
-dotnet --version  # Should be 10.0.x or higher
-```
+### dotnet format (C#)
 
-### XamlStyler (XAML Formatting)
-
-Run via `dotnet dnx` (dotnet tool runner). No manual installation required.
-
-### dotnet format (C# Formatting)
-
-Included with .NET SDK by default.
+Included with the .NET SDK. Run with `--no-restore` (no NuGet resolution).
 
 ---
 
@@ -57,21 +51,17 @@ Copy from template to workspace root if `.editorconfig` doesn't exist.
 
 ## 3. Formatting Commands
 
-### XAML Formatting
+### XAML Formatting (local xstyler)
 
 ```bash
-# Format all XAML files in workspace
-dotnet dnx -y XamlStyler.Console -- -d "{workspace}" -r -c "{workspace}/Settings.XamlStyler"
-
 # Format single file
-dotnet dnx -y XamlStyler.Console -- -f "{file.xaml}" -c "{workspace}/Settings.XamlStyler"
+"${CLAUDE_PLUGIN_ROOT}/bin/XamlStyler/xstyler.exe" -f "{file.xaml}" -c "{workspace}/Settings.XamlStyler"
+
+# Format a directory recursively
+"${CLAUDE_PLUGIN_ROOT}/bin/XamlStyler/xstyler.exe" -d "{workspace}" -r -c "{workspace}/Settings.XamlStyler"
 ```
 
-**dotnet dnx Options**:
-- `-y`: Auto-accept confirmation prompt
-- `--`: Separator between dnx options and tool arguments
-
-**XamlStyler Options**:
+**xstyler Options**:
 - `-d`: Target directory
 - `-f`: Target file
 - `-r`: Recursive processing
@@ -104,15 +94,15 @@ dotnet format "{project.csproj}" --include "{file.cs}" --no-restore
 Task Progress:
 - [ ] Step 1: Check if Settings.XamlStyler exists, create if not
 - [ ] Step 2: Check if .editorconfig exists, create if not
-- [ ] Step 3: Run dotnet dnx XamlStyler.Console for XAML formatting
+- [ ] Step 3: Run the vendored `xstyler.exe` for XAML formatting
 - [ ] Step 4: Run dotnet format for C# formatting
 ```
 
 ### Per-file Formatting (Hook Usage)
 
 ```
-- When .xaml file modified: Run dotnet dnx XamlStyler.Console
-- When .cs file modified: Run dotnet format
+- When .xaml file modified: Run bin/XamlStyler/xstyler.exe (CodeFormatter hook)
+- When .cs file modified: Run dotnet format --no-restore (CodeFormatter hook)
 ```
 
 ---

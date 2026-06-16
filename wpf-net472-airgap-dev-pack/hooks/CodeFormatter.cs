@@ -3,7 +3,9 @@
 // Code Formatter Hook
 // Formats XAML and C# files after Write or Edit operations.
 // Input: stdin JSON with "tool_name" and "tool_input.file_path" fields
-// Uses: dotnet dnx (cross-platform, no additional dependencies)
+// XAML: the locally vendored XamlStyler (bin/XamlStyler/xstyler.exe, built by
+//       tools/build-local-bin.ps1) — no dnx / NuGet resolution at runtime.
+// C#:   `dotnet format --no-restore` (bundled in the SDK; no NuGet resolution).
 
 using System.Diagnostics;
 using System.Text.Json;
@@ -79,15 +81,25 @@ static void FormatXaml(string filePath, string workspaceRoot)
 {
     var configPath = Path.Combine(workspaceRoot, "Settings.XamlStyler");
 
-    // dotnet dnx: 크로스 플랫폼 도구 실행 (pwsh 불필요)
-    // dotnet dnx: cross-platform tool execution (no pwsh required)
+    // Run the locally vendored XamlStyler — no dnx, no NuGet resolution at runtime.
+    var pluginRoot = Environment.GetEnvironmentVariable("CLAUDE_PLUGIN_ROOT");
+    if (string.IsNullOrEmpty(pluginRoot))
+        return; // cannot locate the vendored formatter — skip silently
+
+    var xstyler = Path.Combine(pluginRoot, "bin", "XamlStyler", "xstyler.exe");
+    if (!File.Exists(xstyler))
+    {
+        Console.WriteLine("XamlStyler not built yet — run setup.ps1 (tools/build-local-bin.ps1) to enable XAML formatting.");
+        return;
+    }
+
     var toolArgs = File.Exists(configPath)
-        ? $"dnx -y XamlStyler.Console -- -f \"{filePath}\" -c \"{configPath}\""
-        : $"dnx -y XamlStyler.Console -- -f \"{filePath}\"";
+        ? $"-f \"{filePath}\" -c \"{configPath}\""
+        : $"-f \"{filePath}\"";
 
     try
     {
-        var psi = new ProcessStartInfo("dotnet", toolArgs)
+        var psi = new ProcessStartInfo(xstyler, toolArgs)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,

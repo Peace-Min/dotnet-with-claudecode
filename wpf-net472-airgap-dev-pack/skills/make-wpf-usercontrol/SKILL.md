@@ -85,28 +85,46 @@ public partial class $0Control : UserControl
 **$0ControlViewModel.cs**
 
 ```csharp
-namespace {Namespace}.ViewModels;
+using System.Windows.Input;
+using {Namespace}.Mvvm;
 
-public partial class $0ControlViewModel : ObservableObject
+namespace {Namespace}.ViewModels
 {
-    [ObservableProperty] private string _title = string.Empty;
-
-    [RelayCommand]
-    private void Submit()
+    public sealed class $0ControlViewModel : BindableBase
     {
-        // TODO: Implement submit logic
+        private string _title = string.Empty;
+        public string Title
+        {
+            get { return _title; }
+            set { SetProperty(ref _title, value); }
+        }
+
+        public ICommand SubmitCommand { get; }
+
+        public $0ControlViewModel()
+        {
+            SubmitCommand = new RelayCommand(Submit);
+        }
+
+        private void Submit()
+        {
+            // TODO: implement submit logic
+        }
     }
 }
 ```
 
+> Uses hand-rolled `BindableBase`/`RelayCommand` (`rules/mvvm-constraints.md`);
+> create `Mvvm/` base classes if the project lacks them. Block-scoped namespace,
+> C# 7.3-safe — no CommunityToolkit.
+
 **$0Control.xaml (with ViewModel)**
 
-> **No inline runtime `DataContext`.** Inline `<UserControl.DataContext>` (and
-> code-behind `DataContext = new …`) is prohibited (P-001-c). Declare a
-> design-time `d:DataContext` for IntelliSense only; the runtime DataContext is
-> supplied by the composition root — the parent passes the VM, or a
-> `Mappings.xaml` `DataTemplate` resolves this control as the View for
-> `$0ControlViewModel` (ViewModel First). This matches `make-wpf-viewmodel`.
+> **Runtime DataContext.** Declare a design-time `d:DataContext` for IntelliSense.
+> At runtime the DataContext is supplied by one of the wiring styles in
+> `rules/view-viewmodel-wiring-handrolled.md` — the parent passes the VM,
+> code-behind `DataContext = new $0ControlViewModel()`, or an implicit
+> `DataTemplate`. Match what the project already uses; keep one style per project.
 
 ```xml
 <UserControl x:Class="{Namespace}.Controls.$0Control"

@@ -14,33 +14,36 @@ matching the `/wpf-net472-airgap-dev-pack:make-wpf-converter` scaffolder and the
 `using-converter-markup-extension` knowledge topic. Pick this one pattern — do
 NOT also expose a separate static `Instance` property.
 
-Derive from a small base class (the scaffolder generates it once per project):
+Derive from a small base class (the scaffolder generates it once per project).
+**net472/net48, C# 7.3-safe** — block-scoped namespace, no nullable reference
+types, no target-typed `new`, no `or` patterns:
 
 ```csharp
-namespace MyApp.Converters;
-
-public abstract class ConverterMarkupExtension<T> : MarkupExtension, IValueConverter
-    where T : class, new()
+namespace MyApp.Converters
 {
-    private static readonly Lazy<T> _converter = new(() => new T());
-
-    public override object ProvideValue(IServiceProvider serviceProvider) => _converter.Value;
-
-    public abstract object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture);
-
-    public virtual object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotSupportedException("ConvertBack is not supported.");
-}
-
-public sealed class BoolToVisibilityConverter : ConverterMarkupExtension<BoolToVisibilityConverter>
-{
-    public override object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    public abstract class ConverterMarkupExtension<T> : MarkupExtension, IValueConverter
+        where T : class, new()
     {
-        if (value is null || value == DependencyProperty.UnsetValue)
-            return Visibility.Collapsed;
+        private static readonly Lazy<T> _converter = new Lazy<T>(() => new T());
 
-        var invert = parameter is "Invert" or "invert";
-        return (value is bool b && (b ^ invert)) ? Visibility.Visible : Visibility.Collapsed;
+        public override object ProvideValue(IServiceProvider serviceProvider) => _converter.Value;
+
+        public abstract object Convert(object value, Type targetType, object parameter, CultureInfo culture);
+
+        public virtual object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotSupportedException("ConvertBack is not supported.");
+    }
+
+    public sealed class BoolToVisibilityConverter : ConverterMarkupExtension<BoolToVisibilityConverter>
+    {
+        public override object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value == null || value == DependencyProperty.UnsetValue)
+                return Visibility.Collapsed;
+
+            var invert = Equals(parameter, "Invert") || Equals(parameter, "invert");
+            return (value is bool b && (b ^ invert)) ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 }
 ```

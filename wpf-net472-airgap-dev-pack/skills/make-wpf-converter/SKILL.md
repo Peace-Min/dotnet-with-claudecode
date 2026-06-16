@@ -10,6 +10,12 @@ argument-hint: [ConverterName]
 Generate a `$0Converter` class with MarkupExtension pattern for direct XAML usage.
 If `multi` is appended to the arguments, generate IMultiValueConverter instead of IValueConverter.
 
+> **Output target: net472/net48, C# 7.3-safe.** Follow the canonical converter in
+> `rules/converter-patterns.md` exactly — block-scoped namespace, `object` (not
+> `object?`), `new Lazy<T>(...)` (not target-typed `new`), `Equals(parameter, "…")`
+> (not `is "…" or "…"`), and per-file `using` (no global usings). Treat any
+> modern-C# syntax in the examples below as shape only; emit C# 7.3.
+
 - Replace `{Namespace}` with the project's root namespace detected from csproj or existing code.
 - Replace `{SourceType}` and `{TargetType}` with the appropriate types based on the converter name (e.g., BoolToVisibility → bool, Visibility).
 - Replace `{Project}` with the target project path.

@@ -89,36 +89,32 @@ public sealed class $0Service
 }
 ```
 
-### Step 5: Register in DI Container
+### Step 5: Use / register the service
 
-#### CommunityToolkit.Mvvm (GenericHost)
-
-Locate `App.xaml.cs` and add in `ConfigureServices`:
+The default net472 scaffold has **no DI framework**. Construct the service where
+it is needed — typically a ViewModel takes it via its constructor and the parent
+(or the window code-behind) passes it in:
 
 ```csharp
-// With interface
+// No DI framework (default): construct and inject by hand
+var service = new $0Service();
+var vm = new SomeViewModel(service);
+```
+
+Only if the project **already** uses a DI container, register it there — do NOT
+add `Microsoft.Extensions.Hosting` or any DI framework just to register a service
+(see `rules/prohibitions.md` P-003/P-004):
+
+```csharp
+// Microsoft.Extensions.DependencyInjection (only if the project already uses it)
 services.AddSingleton<I$0Service, $0Service>();
 
-// Without interface (--no-interface)
-services.AddSingleton<$0Service>();
-```
-
-#### Prism 9
-
-Locate `App.xaml.cs` and add in `RegisterTypes`:
-
-```csharp
-// With interface
+// Prism (opt-in; only if the project already uses Prism)
 containerRegistry.RegisterSingleton<I$0Service, $0Service>();
-
-// Without interface (--no-interface)
-containerRegistry.RegisterSingleton<$0Service>();
 ```
 
-> **GlobalUsings**: make sure `App.xaml.cs` can resolve the service type — add
-> `global using {Namespace}.Services;` to the app's existing `GlobalUsings.cs`
-> if absent (the `Services` namespace now exists, so the using resolves). Do not
-> create a second `GlobalUsings.cs`.
+> No `GlobalUsings.cs` — global usings require C# 10. Use a per-file
+> `using {Namespace}.Services;` where the service type is referenced.
 
 ### Step 6: Report Results
 
